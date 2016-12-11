@@ -23,6 +23,10 @@ namespace Auros
         public MainWindow()
         {
             InitializeComponent();
+            serialOutput.Text = "opening serial port";
+            Serial serialPort = new Serial();
+            serialPort.readPort();
+            serialOutput.Text = "closing serial port";
         }
     }
 }

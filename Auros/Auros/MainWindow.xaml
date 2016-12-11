@@ -5,8 +5,29 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Auros"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
+        Title="Automated Stroke Assessment System (AUROS)" Height="600" Width="1280">
+    
     <Grid>
-        <TextBlock>Jambuuuhuyy</TextBlock>
+        <Grid x:Name="LoginGrid" Visibility="Collapsed">
+
+        </Grid>
+        
+        <Grid x:Name="MainGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.05*"/>
+                <ColumnDefinition Width="0.2*"/>
+                <ColumnDefinition Width="0.75*"/>
+            </Grid.ColumnDefinitions>
+            <Grid Grid.Column="0" Background="#FF4B002E">
+                
+            </Grid>
+            <Grid Grid.Column="1" Background="#FFE4E4E4">
+                
+            </Grid>
+            <Grid Grid.Column="2">
+                <TextBlock x:Name="serialOutput"></TextBlock>
+            </Grid>
+            
+        </Grid>        
     </Grid>
 </Window>
