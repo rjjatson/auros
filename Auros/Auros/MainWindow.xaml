@@ -18,16 +18,53 @@
                 <ColumnDefinition Width="0.2*"/>
                 <ColumnDefinition Width="0.75*"/>
             </Grid.ColumnDefinitions>
-            <Grid Grid.Column="0" Background="#FF4B002E">
-                
-            </Grid>
-            <Grid Grid.Column="1" Background="#FFE4E4E4">
-                
-            </Grid>
-            <Grid Grid.Column="2">
-                <TextBlock x:Name="serialOutput"></TextBlock>
+            
+            <Grid Grid.Column="0" x:Name="TabGrid" Background="#FF4B002E">
+                <StackPanel Orientation="Vertical">
+                    <Button Background="Transparent" Click="Train_Click">
+                        <Image Source="data/icon/cloud305.png" ></Image>
+                    </Button>
+                    <Button Background="Transparent" Click="Score_Click">
+                        <Image Source="data/icon/cloud306.png"></Image>
+                    </Button>
+                    <Button Background="Transparent" Click="Report_Click">
+                        <Image Source="data/icon/shared1.png"></Image>
+                    </Button>
+                    <Button Background="Transparent" Click="Setting_Click">
+                        <Image Source="data/icon/settings49.png"></Image>
+                    </Button>
+                </StackPanel>
             </Grid>
             
+            <Grid Grid.Column="1" x:Name="ListGrid" Background="#FFE4E4E4">
+                <Grid x:Name="ListTrainGrid">
+                    <TextBlock Text="list train grid"/>
+                </Grid>
+                <Grid x:Name="ListScoreGrid">
+                    <TextBlock Text="list score grid"/>
+                </Grid>
+                <Grid x:Name="ListReportGrid">
+                    <TextBlock Text="list report grid"/>
+                </Grid>
+                <Grid x:Name="ListSettingGrid">
+                    <TextBlock Text="list setting grid"/>
+                </Grid>
+            </Grid>
+            
+            <Grid Grid.Column="2" x:Name="ContentGrid">
+                <Grid x:Name="ContentTrainGrid">
+                    <TextBlock Text="content train grid"/>
+                </Grid>
+                <Grid x:Name="ContentScoreGrid">
+                    <TextBlock Text="content score grid"/>
+                </Grid>
+                <Grid x:Name="ContentReportGrid">
+                    <TextBlock Text="content report grid"/>
+                </Grid>
+                <Grid x:Name="ContentSettingGrid">
+                    <TextBlock Text="content setting grid"/>
+                </Grid>
+            </Grid>     
         </Grid>        
     </Grid>
 </Window>
