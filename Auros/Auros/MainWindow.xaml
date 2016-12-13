@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Auros"
         mc:Ignorable="d"
-        Title="Automated Stroke Assessment System (AUROS)" Height="600" Width="1280">
-    
+        Title="Automated Stroke Assessment System (AUROS)" Height="600" Width="1280" Loaded="Window_Loaded" Closing="Window_Closing">
+   
     <Grid>
         <Grid x:Name="LoginGrid" Visibility="Collapsed">
 
@@ -36,35 +36,20 @@
                 </StackPanel>
             </Grid>
             
-            <Grid Grid.Column="1" x:Name="ListGrid" Background="#FFE4E4E4">
-                <Grid x:Name="ListTrainGrid">
-                    <TextBlock Text="list train grid"/>
-                </Grid>
-                <Grid x:Name="ListScoreGrid">
-                    <TextBlock Text="list score grid"/>
-                </Grid>
-                <Grid x:Name="ListReportGrid">
-                    <TextBlock Text="list report grid"/>
-                </Grid>
-                <Grid x:Name="ListSettingGrid">
-                    <TextBlock Text="list setting grid"/>
-                </Grid>
+            <Grid Grid.Column="1" x:Name="ListGrid" Background="#FFE4E4E4">                
             </Grid>
             
             <Grid Grid.Column="2" x:Name="ContentGrid">
                 <Grid x:Name="ContentTrainGrid">
                     <TextBlock Text="content train grid"/>
-                </Grid>
-                <Grid x:Name="ContentScoreGrid">
-                    <TextBlock Text="content score grid"/>
-                </Grid>
-                <Grid x:Name="ContentReportGrid">
-                    <TextBlock Text="content report grid"/>
-                </Grid>
-                <Grid x:Name="ContentSettingGrid">
-                    <TextBlock Text="content setting grid"/>
-                </Grid>
-            </Grid>     
+                    <Viewbox HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
+                    </Viewbox>
+                </Grid>         
+            </Grid>
+            <StatusBar Grid.Row="2" HorizontalAlignment="Stretch" Name="statusBar" VerticalAlignment="Bottom" Background="White" Foreground="Gray">
+                <StatusBarItem Content="{Binding StatusText}" />
+            </StatusBar>
         </Grid>        
     </Grid>
 </Window>

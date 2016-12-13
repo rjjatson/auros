@@ -22,10 +22,8 @@ namespace Auros
             string portName = "COM20";
             string message="nothing";
             bool isReading = false;
-
-            //setup thread
-            //Thread portReadingT = new Thread(new ThreadStart(ThreadStart));
-
+            int dataRate = 3;
+            
 
             //setup port
             SerialPort glovePort = new SerialPort();
@@ -42,6 +40,7 @@ namespace Auros
             {               
                 glovePort.Open();
                 isReading = true;
+                Debug.WriteLine("Serial port oppened...");
             }
             catch(Exception e)
             {
@@ -55,7 +54,7 @@ namespace Auros
                 {
                     message = glovePort.ReadLine();
                     Debug.WriteLine(message);
-                    Thread.Sleep(250);
+                    Thread.Sleep(1000/dataRate);
                 }
                 catch(Exception e)
                 {
@@ -63,7 +62,6 @@ namespace Auros
                     isReading = false;
                 }
             }
-
             glovePort.Close();
         }
            
