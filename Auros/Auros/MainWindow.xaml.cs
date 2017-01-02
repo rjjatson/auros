@@ -15,13 +15,14 @@ using System.Windows.Shapes;
 using System.Diagnostics;
 using Microsoft.Kinect;
 using System.ComponentModel;
+using System.Windows.Threading;
 
 namespace Auros
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         #region KinectProperties
         /// <summary>
@@ -124,10 +125,8 @@ namespace Auros
         /// </summary>
         private List<Pen> bodyColors;
 
-        /// <summary>
-        /// Current status text to display
-        /// </summary>
-        private string statusText = null;
+        
+        
 
         /// <summary>
         /// INotifyPropertyChangedPropertyChanged event to allow window controls to bind to changeable data
@@ -154,7 +153,6 @@ namespace Auros
             {
                 return this.statusText;
             }
-
             set
             {
                 if (this.statusText != value)
@@ -169,15 +167,18 @@ namespace Auros
                 }
             }
         }
-
+        private string statusText = null;
         #endregion
 
+        
+
+        //class init
+        JointManager jointManager;
         Serial GloveSerial;
-        delegate void readGloveDelegate();
 
         public MainWindow()
         {
-            #region InitPropertiesKinect
+            #region KinectInit
             // one sensor is currently supported
             this.kinectSensor = KinectSensor.GetDefault();
 
@@ -263,11 +264,14 @@ namespace Auros
 
             ClearElements();
             GloveSerial = new Serial();
+            GloveSerial.OpenPort(0);
+
+            jointManager = new JointManager();
 
             InitializeComponent();
         }
 
-        #region Kinect SDK        
+        #region Kinect SDK    
 
         /// <summary>
         /// Handles the body frame data arriving from the sensor
@@ -301,8 +305,9 @@ namespace Auros
                 {
                     // Draw a transparent background to set the render size
                     dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
-
                     int penIndex = 0;
+                    //TODO : Clear data buffer
+
                     foreach (Body body in this.bodies)
                     {
                         Pen drawPen = this.bodyColors[penIndex++];
@@ -312,6 +317,7 @@ namespace Auros
                             this.DrawClippedEdges(body, dc);
 
                             IReadOnlyDictionary<JointType, Joint> joints = body.Joints;
+                            FetchSensorData(joints);
 
                             // convert the joint points to depth (display) space
                             Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
@@ -325,8 +331,9 @@ namespace Auros
                                 {
                                     position.Z = InferredZPositionClamp;
                                 }
-
+                                
                                 DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
+                               
                                 jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
                             }
 
@@ -342,7 +349,7 @@ namespace Auros
                 }
             }
         }
-
+        
         /// <summary>
         /// Draws a body
         /// </summary>
@@ -351,7 +358,7 @@ namespace Auros
         /// <param name="drawingContext">drawing context to draw to</param>
         /// <param name="drawingPen">specifies color to draw a specific body</param>
         private void DrawBody(IReadOnlyDictionary<JointType, Joint> joints, IDictionary<JointType, Point> jointPoints, DrawingContext drawingContext, Pen drawingPen)
-        {
+        {            
             // Draw the bones
             foreach (var bone in this.bones)
             {
@@ -485,12 +492,18 @@ namespace Auros
         /// <param name="e">event arguments</param>
         private void Sensor_IsAvailableChanged(object sender, IsAvailableChangedEventArgs e)
         {
+
             // on failure, set the status text
             this.StatusText = this.kinectSensor.IsAvailable ? Properties.Resources.RunningStatusText
                                                             : Properties.Resources.SensorNotAvailableStatusText;
         }
         #endregion
 
+        private void FetchSensorData(IReadOnlyDictionary<JointType, Joint> joints)
+        {
+            //dataSensorText.Text = "x " + joints[JointType.WristRight].Position.X.ToString() + "\ny " + joints[JointType.WristRight].Position.Y.ToString() + "\nz " + joints[JointType.WristRight].Position.Z.ToString();
+            Debug.WriteLine(GloveSerial.ReadPort());
+        }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
@@ -514,31 +527,32 @@ namespace Auros
                 this.kinectSensor.Close();
                 this.kinectSensor = null;
             }
+            GloveSerial.ClosePort();
         }
 
         private void ClearElements()
-        {           
+        {
 
         }
 
         private void Train_Click(object sender, RoutedEventArgs e)
         {
-            
+
         }
 
         private void Score_Click(object sender, RoutedEventArgs e)
         {
-            
+
         }
 
         private void Report_Click(object sender, RoutedEventArgs e)
         {
-            
+
         }
 
         private void Setting_Click(object sender, RoutedEventArgs e)
         {
-            
+
         }
 
     }

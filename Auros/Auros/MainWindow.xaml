@@ -41,15 +41,15 @@
             
             <Grid Grid.Column="2" x:Name="ContentGrid">
                 <Grid x:Name="ContentTrainGrid">
-                    <TextBlock Text="content train grid"/>
+                    <TextBlock x:Name="dataSensorText" Text="{Binding DataSensor}"/>
                     <Viewbox HorizontalAlignment="Center" VerticalAlignment="Center">
                         <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
                     </Viewbox>
                 </Grid>         
-            </Grid>
-            <StatusBar Grid.Row="2" HorizontalAlignment="Stretch" Name="statusBar" VerticalAlignment="Bottom" Background="White" Foreground="Gray">
-                <StatusBarItem Content="{Binding StatusText}" />
-            </StatusBar>
-        </Grid>        
+            </Grid>           
+        </Grid>
+        <StatusBar Grid.Row="2" HorizontalAlignment="Stretch" Name="statusBar" VerticalAlignment="Bottom" Background="White" Foreground="Gray">
+            <StatusBarItem Content="{Binding StatusText}" />
+        </StatusBar>
     </Grid>
 </Window>

@@ -12,58 +12,69 @@ namespace Auros
     public class Serial
     {
         public string messageBuffer { get; set; }
+        private SerialPort glovePort;
 
         public Serial()
-        {          
-
-        }
-        public void readPort()
         {
-            string portName = "COM20";
-            string message="nothing";
-            bool isReading = false;
-            int dataRate = 3;
-            
 
-            //setup port
-            SerialPort glovePort = new SerialPort();
-            glovePort.BaudRate = 9600;
-            glovePort.DataBits = 8;
-            glovePort.Parity = Parity.None;
-            glovePort.StopBits = StopBits.One;
-            glovePort.Handshake = Handshake.None;
-            glovePort.PortName = portName;
-            glovePort.ReadTimeout = 500;
-            glovePort.WriteTimeout = 500;
-
-            try
-            {               
-                glovePort.Open();
-                isReading = true;
-                Debug.WriteLine("Serial port oppened...");
-            }
-            catch(Exception e)
-            {
-                Debug.WriteLine("[Error]fail opening serial port > " + e.Message);
-            }
-            
-
-            while(isReading)
-            {
-                try
-                {
-                    message = glovePort.ReadLine();
-                    Debug.WriteLine(message);
-                    Thread.Sleep(1000/dataRate);
-                }
-                catch(Exception e)
-                {
-                    Debug.WriteLine("[Error]fail reading serial port > " + e.Message);
-                    isReading = false;
-                }
-            }
-            glovePort.Close();
         }
-           
+        public void OpenPort(int comPortNumber)
+        {
+            try
+            {
+                //setup port
+                glovePort = new SerialPort();
+                glovePort.BaudRate = Definitions.BaudRate;
+                glovePort.DataBits = Definitions.DataBits;
+                glovePort.Parity = Definitions.DataParity;
+                glovePort.StopBits = Definitions.DataStopBits;
+                glovePort.Handshake = Definitions.DataHandShake;
+                //glovePort.PortName = (Definitions.IsAutoSearchSerialPort) ? ("COM" + comPortNumber.ToString()) : ("COM" + Definitions.PortNumber.ToString());
+                glovePort.PortName = "COM" + Definitions.PortNumber.ToString();
+                glovePort.ReadTimeout = Definitions.ReadTimeout;
+                glovePort.WriteTimeout = Definitions.ReadTimeout;
+
+                glovePort.Open();
+                Debug.WriteLine("[Success]Serial port oppened");
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("[Error]Fail opening serial port > " + e.Message);
+                if (Definitions.IsAutoSearchSerialPort && comPortNumber < Definitions.MaxPortNumber)
+                {
+                    Debug.WriteLine("[Debug]Try opening higher port number > ");
+                    glovePort = null;
+                    OpenPort(comPortNumber++);
+                }
+            }
+
+        }
+        public void ClosePort()
+        {
+            try
+            {
+                glovePort.Close();
+                Debug.WriteLine("[Success]Serial port clsoed");
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("[Error]Fail closing serial port > " + e.Message);
+            }
+        }
+
+        public string ReadPort()
+        {
+            string message = "null";
+            try
+            {
+                message = glovePort.ReadLine();
+                Debug.WriteLine(message);
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("[Error]fail reading serial port > " + e.Message);
+            }
+            return message;
+        }
     }
 }
