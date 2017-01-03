@@ -8,7 +8,7 @@ namespace Auros
 {
     public class Assessment
     {
-        public Definitions.AssessItemCode ItemCode;
+        public Definitions.AssessmentCode AssessmentCode;
         public string AssessmentName { get; set; }
 
         public string VideoPath;

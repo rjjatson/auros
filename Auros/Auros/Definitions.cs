@@ -52,7 +52,83 @@ namespace Auros
 
         public enum AssessSide { Right, Left };
         public enum AssessLimb { Upper, Lower };
-        public enum AssessItemCode
+        public enum AssessmentCode
+        {
+            U11,
+            U21,
+            U31,
+            U41,
+            U42,
+            U43,
+            U51,
+            U52,
+            U53,
+            U61,
+            U71,
+            U72,
+            U73,
+            U74,
+            U75,
+            U81,
+            U82,
+            U83,
+            U84,
+            U85,
+            U86,
+            U87,
+            U91,
+            L11,
+            L21,
+            L22,
+            L31,
+            L32,
+            L41,
+            L42,
+            L51,
+            L61            
+        };
+
+        public static List<String> AssessItemName = new List<string>()
+        {
+            //Upper Extremity
+            "Reflex Activity",                                                                      //U11
+            "Flexor Synergy",                                                                       //U21
+            "Extensor Synergy",                                                                     //U31
+            "Hand to Lumbar Spine",                                                                 //U41
+            "Shoulder Flexion to 90° (Elbow at 0°)",                                                //U42
+            "Pronation/Supination of Forearm (Elbow at 90° Shoulder at 0°)",                        //U43
+            "Shoulder Abduction to 90° (Elbow at 0° and Forearm Pronated)",                         //U51
+            "Shoulder Flexion from 90°-180° (Elbow at 0° and Forearm in Mid-Position)",             //U52
+            "Pronation/supination of Forearm (Elbow at 0° and Shoulder at 30°-90° of Flexion)",     //U53
+            "Normal Reflexes",                                                                      //U61
+            "Stability (Elbow at 90° and Shoulder at 0°)",                                          //U71
+            "Flexion/Extension (Elbow at 90° and Shoulder at 0°)",                                  //U72
+            "Stability (Elbow at 0° and Shoulder at 30° Flexion)",                                  //U73
+            "Flexion/Extension (Elbow at 0° and Shoulder at 30° Flexion)",                          //U74
+            "Circumduction",                                                                        //U75
+            "Finger Mass Flexion",                                                                  //U81
+            "Finger Mass Exetension",                                                               //U82
+            "Grasp I",                                                                              //U83
+            "Grasp II",                                                                             //U84
+            "Grasp III",                                                                            //U85
+            "Grasp IV",                                                                             //U86
+            "Grasp V",                                                                              //U87
+            "Finger to Nose",                                                                       //U91
+
+            // Lower Extremitiy
+            "Reflex Activity",                                                                      //L11
+            "Flexor Synergy",                                                                       //L21
+            "Extensor Synergy",                                                                     //L22
+            "Knee Flexion Beyond 90°",                                                              //L31
+            "Ankle Dorsiflexion (sit)",                                                             //L32
+            "Knee Flexion",                                                                         //L41
+            "Angkle Dorsiflexion (stand)",                                                          //L42
+            "Normal Reflex",                                                                        //L51
+            "Heel to Opposite Knee"                                                                 //L61
+        };
+
+
+        public enum ItemCode
         {
             //TODO : explain each item in brief
             U1A, //BICEPT REFLEX 0/2
@@ -111,44 +187,6 @@ namespace Auros
 
         };
 
-        public static List<String> AssessItemName = new List<string>()
-        {
-            //Upper Extremity
-            "Reflex Activity", //1ab
-            "Flexor Synergy",//2abcdef
-            "Extensor Synergy",//3abc
-            "Hand to Lumbar Spine",//4a
-            "Shoulder Flexion to 90° (Elbow at 0°)",//4b
-            "Pronation/Supination of Forearm (Elbow at 90° Shoulder at 0°)",//4c
-            "Shoulder Abduction to 90° (Elbow at 0° and Forearm Pronated)",//5a
-            "Shoulder Flexion from 90°-180° (Elbow at 0° and Forearm in Mid-Position)",//5b
-            "Pronation/supination of Forearm (Elbow at 0° and Shoulder at 30°-90° of Flexion)",//5c
-            "Normal Reflexes",//6a
-            "Stability (Elbow at 90° and Shoulder at 0°)",//7a
-            "Flexion/Extension (Elbow at 90° and Shoulder at 0°)",//7b
-            "Stability (Elbow at 0° and Shoulder at 30° Flexion)",//7c
-            "Flexion/Extension (Elbow at 0° and Shoulder at 30° Flexion)",//7d
-            "Circumduction",//7e
-            "Finger Mass Flexion",//8a
-            "Finger Mass Exetension",//8b
-            "Grasp I",//8c
-            "Grasp II",//8d
-            "Grasp III",//8e
-            "Grasp IV",//8f
-            "Grasp V",//8g
-            "Finger to Nose",//9abc
 
-            // Lower Extremitiy
-            "Reflex Activity", //1ab
-            "Flexor Synergy", //2abc
-            "Extensor Synergy", //2defg
-            "Knee Flexion Beyond 90°", //3a
-            "Ankle Dorsiflexion (sit)", //3b
-            "Knee Flexion", //4a
-            "Angkle Dorsiflexion (stand)",//4b
-            "Normal Reflex", //5a
-            "Heel to Opposite Knee"//6abc
-
-        };
     }
 }

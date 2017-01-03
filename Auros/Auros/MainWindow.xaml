@@ -37,7 +37,7 @@
             </Grid>
 
             <Grid Grid.Column="1" x:Name="ListGrid" >
-                <ListView Name="AssessmentListView" ItemsSource="{Binding assessmentLibrary}" Background="#FFE4E4E4">
+                <ListView Name="AssessmentListView" SelectionChanged="AssessmentListView_SelectionChanged" ItemsSource="{Binding assessmentLibrary}" Background="#FFE4E4E4">
                     <ListView.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding AssessmentName}"/>

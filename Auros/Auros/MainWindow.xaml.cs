@@ -281,16 +281,84 @@ namespace Auros
             AssessmentListView.DataContext = this;
         }
 
+        #region Assessment Object Control
         private void InitAssessmentLibrary()
         {
+            int i = 0;
             foreach(string s in Definitions.AssessItemName)
             {
                 Assessment newAssesment = new Assessment();
                 newAssesment.AssessmentName = s;
+                newAssesment.AssessmentCode = (Definitions.AssessmentCode)i;
                 assessmentLibrary.Add(newAssesment);
+                i++;
             }
         }
+        private void AssessmentListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var x = AssessmentListView.SelectedItem;
+        }
 
+        #endregion
+        
+        #region Data Control
+        private void FetchSensorData(IReadOnlyDictionary<JointType, Joint> joints)
+        {
+            string dataChunk = "";
+
+            if (isRecording)
+            {
+                try
+                {
+                    string gloveSensorDataRaw = gloveSerial.ReadPort();
+                    string[] gloveSensorData = gloveSensorDataRaw.Split('#');
+
+                    foreach (string s in gloveSensorData)
+                    {
+                        if (s.Contains("\r"))
+                        {
+                            s.Remove(s.Length - 2);
+                            dataChunk += s;
+                        }
+                        else
+                        {
+                            dataChunk += (s + ',');
+                        }
+                    }
+                    if (dataChunk != null && gloveSensorData.Length == 5)
+                    {
+                        csvBuilder.Append(dataChunk);
+                        File.AppendAllText("glovesensor.csv", csvBuilder.ToString());
+                        Debug.WriteLine("[Success]Writing CSV file");
+                    }
+                    else
+                    {
+                        Debug.WriteLine("[Error]Data integrity error");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine("[Error]Fail Writing CSV file > " + e.Message);
+                }
+            }
+        }
+        private void KeyPressed(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Up)
+            {
+
+            }
+            else if (e.Key == Key.Down)
+            {
+
+            }
+            else if (e.Key == Key.Enter)
+            {
+                isRecording = !isRecording;
+            }
+        }
+        #endregion
+        
         #region Kinect SDK    
 
         /// <summary>
@@ -518,49 +586,9 @@ namespace Auros
             this.StatusText = this.kinectSensor.IsAvailable ? Properties.Resources.RunningStatusText
                                                             : Properties.Resources.SensorNotAvailableStatusText;
         }
-        #endregion
+        #endregion        
 
-        private void FetchSensorData(IReadOnlyDictionary<JointType, Joint> joints)
-        {
-            string dataChunk = "";
-
-            if (isRecording)
-            {
-                try
-                {
-                    string gloveSensorDataRaw = gloveSerial.ReadPort();
-                    string[] gloveSensorData = gloveSensorDataRaw.Split('#');
-                    
-                    foreach (string s in gloveSensorData)
-                    {
-                        if(s.Contains("\r"))
-                        {
-                            s.Remove(s.Length-2);
-                            dataChunk += s;
-                        }
-                        else
-                        {
-                            dataChunk += (s + ',');
-                        }
-                    }
-                    if (dataChunk != null&&gloveSensorData.Length==5)
-                    {
-                        csvBuilder.Append(dataChunk);
-                        File.AppendAllText("glovesensor.csv", csvBuilder.ToString());
-                        Debug.WriteLine("[Success]Writing CSV file");
-                    }
-                    else
-                    {
-                        Debug.WriteLine("[Error]Data integrity error");
-                    }
-                }
-                catch (Exception e)
-                {
-                    Debug.WriteLine("[Error]Fail Writing CSV file > " + e.Message);
-                }
-            }
-        }
-
+        #region Windows Control
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             if (this.bodyFrameReader != null)
@@ -569,23 +597,7 @@ namespace Auros
             }
 
             this.KeyDown += new KeyEventHandler(KeyPressed);
-        }
-
-        private void KeyPressed(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Up)
-            {
-
-            }
-            else if (e.Key == Key.Down)
-            {
-
-            }
-            else if (e.Key == Key.Enter)
-            {
-                isRecording = !isRecording;
-            }
-        }
+        }       
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
@@ -628,6 +640,7 @@ namespace Auros
         {
 
         }
+        #endregion
 
     }
 }
