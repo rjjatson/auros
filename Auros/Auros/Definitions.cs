@@ -52,7 +52,7 @@ namespace Auros
 
         public enum AssessSide { Right, Left };
         public enum AssessLimb { Upper, Lower };
-        public enum AssessItem
+        public enum AssessItemCode
         {
             //TODO : explain each item in brief
             U1A, //BICEPT REFLEX 0/2
@@ -111,5 +111,44 @@ namespace Auros
 
         };
 
+        public static List<String> AssessItemName = new List<string>()
+        {
+            //Upper Extremity
+            "Reflex Activity", //1ab
+            "Flexor Synergy",//2abcdef
+            "Extensor Synergy",//3abc
+            "Hand to Lumbar Spine",//4a
+            "Shoulder Flexion to 90° (Elbow at 0°)",//4b
+            "Pronation/Supination of Forearm (Elbow at 90° Shoulder at 0°)",//4c
+            "Shoulder Abduction to 90° (Elbow at 0° and Forearm Pronated)",//5a
+            "Shoulder Flexion from 90°-180° (Elbow at 0° and Forearm in Mid-Position)",//5b
+            "Pronation/supination of Forearm (Elbow at 0° and Shoulder at 30°-90° of Flexion)",//5c
+            "Normal Reflexes",//6a
+            "Stability (Elbow at 90° and Shoulder at 0°)",//7a
+            "Flexion/Extension (Elbow at 90° and Shoulder at 0°)",//7b
+            "Stability (Elbow at 0° and Shoulder at 30° Flexion)",//7c
+            "Flexion/Extension (Elbow at 0° and Shoulder at 30° Flexion)",//7d
+            "Circumduction",//7e
+            "Finger Mass Flexion",//8a
+            "Finger Mass Exetension",//8b
+            "Grasp I",//8c
+            "Grasp II",//8d
+            "Grasp III",//8e
+            "Grasp IV",//8f
+            "Grasp V",//8g
+            "Finger to Nose",//9abc
+
+            // Lower Extremitiy
+            "Reflex Activity", //1ab
+            "Flexor Synergy", //2abc
+            "Extensor Synergy", //2defg
+            "Knee Flexion Beyond 90°", //3a
+            "Ankle Dorsiflexion (sit)", //3b
+            "Knee Flexion", //4a
+            "Angkle Dorsiflexion (stand)",//4b
+            "Normal Reflex", //5a
+            "Heel to Opposite Knee"//6abc
+
+        };
     }
 }

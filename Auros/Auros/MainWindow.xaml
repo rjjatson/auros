@@ -6,19 +6,19 @@
         xmlns:local="clr-namespace:Auros"
         mc:Ignorable="d"
         Title="Automated Stroke Assessment System (AUROS)" Height="600" Width="1280" Loaded="Window_Loaded" Closing="Window_Closing">
-   
+
     <Grid>
         <Grid x:Name="LoginGrid" Visibility="Collapsed">
 
         </Grid>
-        
+
         <Grid x:Name="MainGrid">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="0.05*"/>
                 <ColumnDefinition Width="0.2*"/>
                 <ColumnDefinition Width="0.75*"/>
             </Grid.ColumnDefinitions>
-            
+
             <Grid Grid.Column="0" x:Name="TabGrid" Background="#FF4B002E">
                 <StackPanel Orientation="Vertical">
                     <Button Background="Transparent" Click="Train_Click">
@@ -35,18 +35,24 @@
                     </Button>
                 </StackPanel>
             </Grid>
-            
-            <Grid Grid.Column="1" x:Name="ListGrid" Background="#FFE4E4E4">                
+
+            <Grid Grid.Column="1" x:Name="ListGrid" >
+                <ListView Name="AssessmentListView" ItemsSource="{Binding assessmentLibrary}" Background="#FFE4E4E4">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding AssessmentName}"/>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
             </Grid>
-            
+
             <Grid Grid.Column="2" x:Name="ContentGrid">
                 <Grid x:Name="ContentTrainGrid">
-                    <TextBlock x:Name="dataSensorText" Text="{Binding DataSensor}"/>
                     <Viewbox HorizontalAlignment="Center" VerticalAlignment="Center">
                         <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
                     </Viewbox>
-                </Grid>         
-            </Grid>           
+                </Grid>
+            </Grid>
         </Grid>
         <StatusBar Grid.Row="2" HorizontalAlignment="Stretch" Name="statusBar" VerticalAlignment="Bottom" Background="White" Foreground="Gray">
             <StatusBarItem Content="{Binding StatusText}" />

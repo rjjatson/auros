@@ -175,12 +175,14 @@ namespace Auros
         JointManager jointManager;
         Serial gloveSerial;
         StringBuilder csvBuilder;
+        public List<Assessment> assessmentLibrary { get; set; }
 
         //debuging var
         bool isRecording = false;
 
         public MainWindow()
         {
+            //init source
             #region KinectInit
             // one sensor is currently supported
             this.kinectSensor = KinectSensor.GetDefault();
@@ -264,16 +266,29 @@ namespace Auros
             // use the window object as the view model in this simple example
             this.DataContext = this;
             #endregion
-
             ClearElements();
             gloveSerial = new Serial();
             gloveSerial.OpenPort(0);
-
             jointManager = new JointManager();
-
             csvBuilder = new StringBuilder();
 
+            assessmentLibrary = new List<Assessment>();
+            InitAssessmentLibrary();
+
             InitializeComponent();
+            
+            //init element
+            AssessmentListView.DataContext = this;
+        }
+
+        private void InitAssessmentLibrary()
+        {
+            foreach(string s in Definitions.AssessItemName)
+            {
+                Assessment newAssesment = new Assessment();
+                newAssesment.AssessmentName = s;
+                assessmentLibrary.Add(newAssesment);
+            }
         }
 
         #region Kinect SDK    
@@ -312,6 +327,7 @@ namespace Auros
                     dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
                     int penIndex = 0;
                     //TODO : Clear data buffer
+                    //TODO : Handle body lebih dari satu
 
                     foreach (Body body in this.bodies)
                     {
@@ -322,8 +338,8 @@ namespace Auros
                             this.DrawClippedEdges(body, dc);
 
                             IReadOnlyDictionary<JointType, Joint> joints = body.Joints;
-                            FetchSensorData(joints);
-
+                            //FetchSensorData(joints);
+                            
                             // convert the joint points to depth (display) space
                             Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
 

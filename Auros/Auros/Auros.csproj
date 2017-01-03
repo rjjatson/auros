@@ -76,6 +76,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Assessment.cs" />
     <Compile Include="Definitions.cs" />
     <Compile Include="JointManager.cs" />
     <Compile Include="SensorData.cs" />
