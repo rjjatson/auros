@@ -49,5 +49,67 @@ namespace Auros
             JointType.AnkleRight,
             JointType.FootRight
         };
+
+        public enum AssessSide { Right, Left };
+        public enum AssessLimb { Upper, Lower };
+        public enum AssessItem
+        {
+            //TODO : explain each item in brief
+            U1A, //BICEPT REFLEX 0/2
+            U1B, //TRICEPT REFLEX 0/2
+            U2A, //
+            U2B,
+            U2C,
+            U2D,
+            U2E,
+            U2F,
+            U3A,
+            U3B,
+            U3C,
+            U4A,
+            U4B,
+            U4C,
+            U5A,
+            U5B,
+            U5C,
+            U6A,
+            U7A,
+            U7B,
+            U7C,
+            U7D,
+            U7E,
+            U8A,
+            U8B,
+            U8C,
+            U8D,
+            U8E,
+            U8F,
+            U8G,
+            U9A,
+            U9B,
+            U9C,
+            /// <summary>
+            /// achilles reflex
+            /// </summary>
+            L1A,
+            L1B,
+            L2A,
+            L2B,
+            L2C,
+            L2D,
+            L2E,
+            L2F,
+            L2G,
+            L3A,
+            L3B,
+            L4A,
+            L4B,
+            L5A,
+            L6A,
+            L6B,
+            L6C
+
+        };
+
     }
 }

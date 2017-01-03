@@ -16,6 +16,7 @@ using System.Diagnostics;
 using Microsoft.Kinect;
 using System.ComponentModel;
 using System.Windows.Threading;
+using System.IO;
 
 namespace Auros
 {
@@ -125,8 +126,8 @@ namespace Auros
         /// </summary>
         private List<Pen> bodyColors;
 
-        
-        
+
+
 
         /// <summary>
         /// INotifyPropertyChangedPropertyChanged event to allow window controls to bind to changeable data
@@ -170,11 +171,13 @@ namespace Auros
         private string statusText = null;
         #endregion
 
-        
-
-        //class init
+        //class def
         JointManager jointManager;
-        Serial GloveSerial;
+        Serial gloveSerial;
+        StringBuilder csvBuilder;
+
+        //debuging var
+        bool isRecording = false;
 
         public MainWindow()
         {
@@ -263,10 +266,12 @@ namespace Auros
             #endregion
 
             ClearElements();
-            GloveSerial = new Serial();
-            GloveSerial.OpenPort(0);
+            gloveSerial = new Serial();
+            gloveSerial.OpenPort(0);
 
             jointManager = new JointManager();
+
+            csvBuilder = new StringBuilder();
 
             InitializeComponent();
         }
@@ -331,9 +336,9 @@ namespace Auros
                                 {
                                     position.Z = InferredZPositionClamp;
                                 }
-                                
+
                                 DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
-                               
+
                                 jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
                             }
 
@@ -349,7 +354,7 @@ namespace Auros
                 }
             }
         }
-        
+
         /// <summary>
         /// Draws a body
         /// </summary>
@@ -358,7 +363,7 @@ namespace Auros
         /// <param name="drawingContext">drawing context to draw to</param>
         /// <param name="drawingPen">specifies color to draw a specific body</param>
         private void DrawBody(IReadOnlyDictionary<JointType, Joint> joints, IDictionary<JointType, Point> jointPoints, DrawingContext drawingContext, Pen drawingPen)
-        {            
+        {
             // Draw the bones
             foreach (var bone in this.bones)
             {
@@ -501,8 +506,43 @@ namespace Auros
 
         private void FetchSensorData(IReadOnlyDictionary<JointType, Joint> joints)
         {
-            //dataSensorText.Text = "x " + joints[JointType.WristRight].Position.X.ToString() + "\ny " + joints[JointType.WristRight].Position.Y.ToString() + "\nz " + joints[JointType.WristRight].Position.Z.ToString();
-            Debug.WriteLine(GloveSerial.ReadPort());
+            string dataChunk = "";
+
+            if (isRecording)
+            {
+                try
+                {
+                    string gloveSensorDataRaw = gloveSerial.ReadPort();
+                    string[] gloveSensorData = gloveSensorDataRaw.Split('#');
+                    
+                    foreach (string s in gloveSensorData)
+                    {
+                        if(s.Contains("\r"))
+                        {
+                            s.Remove(s.Length-2);
+                            dataChunk += s;
+                        }
+                        else
+                        {
+                            dataChunk += (s + ',');
+                        }
+                    }
+                    if (dataChunk != null&&gloveSensorData.Length==5)
+                    {
+                        csvBuilder.Append(dataChunk);
+                        File.AppendAllText("glovesensor.csv", csvBuilder.ToString());
+                        Debug.WriteLine("[Success]Writing CSV file");
+                    }
+                    else
+                    {
+                        Debug.WriteLine("[Error]Data integrity error");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine("[Error]Fail Writing CSV file > " + e.Message);
+                }
+            }
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -510,6 +550,24 @@ namespace Auros
             if (this.bodyFrameReader != null)
             {
                 this.bodyFrameReader.FrameArrived += this.Reader_FrameArrived;
+            }
+
+            this.KeyDown += new KeyEventHandler(KeyPressed);
+        }
+
+        private void KeyPressed(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Up)
+            {
+
+            }
+            else if (e.Key == Key.Down)
+            {
+
+            }
+            else if (e.Key == Key.Enter)
+            {
+                isRecording = !isRecording;
             }
         }
 
@@ -527,7 +585,7 @@ namespace Auros
                 this.kinectSensor.Close();
                 this.kinectSensor = null;
             }
-            GloveSerial.ClosePort();
+            gloveSerial.ClosePort();
         }
 
         private void ClearElements()
