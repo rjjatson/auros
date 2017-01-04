@@ -296,9 +296,8 @@ namespace Auros
         }
         private void AssessmentListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var x = AssessmentListView.SelectedItem;
+             
         }
-
         #endregion
         
         #region Data Control
@@ -325,7 +324,7 @@ namespace Auros
                             dataChunk += (s + ',');
                         }
                     }
-                    if (dataChunk != null && gloveSensorData.Length == 5)
+                    if (dataChunk != null && gloveSensorData.Length == 8)
                     {
                         csvBuilder.Append(dataChunk);
                         File.AppendAllText("glovesensor.csv", csvBuilder.ToString());
@@ -333,7 +332,7 @@ namespace Auros
                     }
                     else
                     {
-                        Debug.WriteLine("[Error]Data integrity error");
+                        Debug.WriteLine("[Error]Glove data integrity error");
                     }
                 }
                 catch (Exception e)
@@ -406,7 +405,7 @@ namespace Auros
                             this.DrawClippedEdges(body, dc);
 
                             IReadOnlyDictionary<JointType, Joint> joints = body.Joints;
-                            //FetchSensorData(joints);
+                            FetchSensorData(joints);
                             
                             // convert the joint points to depth (display) space
                             Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
