@@ -78,6 +78,7 @@
     </ApplicationDefinition>
     <Compile Include="Assessment.cs" />
     <Compile Include="Definitions.cs" />
+    <Compile Include="Item.cs" />
     <Compile Include="JointManager.cs" />
     <Compile Include="SensorData.cs" />
     <Compile Include="Serial.cs" />
@@ -112,6 +113,8 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="data\filter\FeaturedDataEachAssessment.csv" />
+    <None Include="data\filter\ItemEachAssessment.csv" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

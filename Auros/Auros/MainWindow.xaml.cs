@@ -276,7 +276,7 @@ namespace Auros
             InitAssessmentLibrary();
 
             InitializeComponent();
-            
+
             //init element
             AssessmentListView.DataContext = this;
         }
@@ -284,22 +284,63 @@ namespace Auros
         #region Assessment Object Control
         private void InitAssessmentLibrary()
         {
-            int i = 0;
-            foreach(string s in Definitions.AssessItemName)
+            try
             {
-                Assessment newAssesment = new Assessment();
-                newAssesment.AssessmentName = s;
-                newAssesment.AssessmentCode = (Definitions.AssessmentCode)i;
-                assessmentLibrary.Add(newAssesment);
-                i++;
+                Array AssessmentCodeList = Enum.GetValues(typeof(Definitions.AssessmentCode));
+                int i = 0;
+                foreach (var assCode in AssessmentCodeList)
+                {
+                    Assessment newAssesment = new Assessment();
+                    newAssesment.AssessmentName = Definitions.AssessItemName[(int)assCode];
+                    newAssesment.AssessmentCode = (Definitions.AssessmentCode)i;
+                    assessmentLibrary.Add(newAssesment);
+                    i++;
+                }
+                Debug.WriteLine("[Success]Creating assessment library");
             }
+            catch (Exception e)
+            {
+                Debug.WriteLine("[Error]Creating assessment library >" + e.Message);
+            }
+
+            try
+            {
+                string[] ItemEachAssessmentCodeLine = File.ReadAllLines(Definitions.ItemEachAssessmentPath);
+                int i = 0;
+                foreach(Assessment ass in assessmentLibrary)
+                {
+                    int j = 0;
+                    foreach(string itm in ItemEachAssessmentCodeLine[i].Split(','))
+                    {
+                        if (itm.Length==3&&j!=0) //error checking, exclude first columns
+                        {
+                            Item newItem = new Item();
+                            newItem.ItemCode = (Definitions.ItemCode)Enum.Parse(typeof(Definitions.ItemCode), itm);
+                            ass.AssociatedItemList.Add(newItem);
+                        }
+                        else
+                        {
+                            int g = 0;
+                        }
+                        j++;
+                    }
+                    i++;
+                }
+                Debug.WriteLine("[Success]Load Item object to assessment library");
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("[Error]Load Item object to assessment library >" + e.Message);
+            }
+            
         }
+
         private void AssessmentListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-             
+
         }
         #endregion
-        
+
         #region Data Control
         private void FetchSensorData(IReadOnlyDictionary<JointType, Joint> joints)
         {
@@ -357,7 +398,7 @@ namespace Auros
             }
         }
         #endregion
-        
+
         #region Kinect SDK    
 
         /// <summary>
@@ -406,7 +447,7 @@ namespace Auros
 
                             IReadOnlyDictionary<JointType, Joint> joints = body.Joints;
                             FetchSensorData(joints);
-                            
+
                             // convert the joint points to depth (display) space
                             Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
 
@@ -596,7 +637,7 @@ namespace Auros
             }
 
             this.KeyDown += new KeyEventHandler(KeyPressed);
-        }       
+        }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {

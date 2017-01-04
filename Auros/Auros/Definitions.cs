@@ -16,7 +16,6 @@ namespace Auros
         public static bool IsAutoSearchSerialPort = false;
         public static int PortNumber = 5;
         public static int MaxPortNumber = 50;
-
         public static int BaudRate = 9600;
         public static int DataBits = 8;
         public static Parity DataParity = Parity.None;
@@ -24,6 +23,10 @@ namespace Auros
         public static Handshake DataHandShake = Handshake.None;
         public static int ReadTimeout = 500;
         public static int WriteTimeout = 500;
+
+        public static string FeaturedDataEachAssessmentPath = "D://Project//AUROS//Desktop/Auros//Auros//data//filter//FeaturedDataEachAssessment.csv";
+        public static string ItemEachAssessmentPath = "D://Project//AUROS//Desktop//Auros//Auros//data//filter//ItemEachAssessment.csv";
+
         /// <summary>
         /// list joints raw data urut dari atas kebawah kiri ke kanan kepala dan alat gerak
         /// </summary>
@@ -184,9 +187,6 @@ namespace Auros
             L6A,
             L6B,
             L6C
-
         };
-
-
     }
 }

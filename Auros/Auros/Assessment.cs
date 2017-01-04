@@ -12,17 +12,14 @@ namespace Auros
         public string AssessmentName { get; set; }
 
         public string VideoPath;
-        public string RawDataPath;
-        public string PreProcDataPath;
-
+        public string RawDataPath;        
         public int storedRawDataNum;
-        public int storedPreProcDataNum;
+
+        public List<Item> AssociatedItemList;
 
         public Assessment()
         {
-
+            AssociatedItemList = new List<Item>();
         }
-
-
     }
 }
