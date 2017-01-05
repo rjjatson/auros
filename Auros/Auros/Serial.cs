@@ -68,7 +68,7 @@ namespace Auros
             try
             {
                 message = glovePort.ReadLine();
-                Debug.WriteLine(message);
+                //Debug.WriteLine(message);
             }
             catch (Exception e)
             {

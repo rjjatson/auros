@@ -24,6 +24,8 @@ namespace Auros
         public static int ReadTimeout = 500;
         public static int WriteTimeout = 500;
 
+        public static string TempFileName = "tempdata.csv";
+
         public static int[] FMALabel = new int[3] {0,1,2 };
 
         ///HACK pindah file resource

@@ -177,6 +177,8 @@ namespace Auros
         Serial gloveSerial;
         StringBuilder csvBuilder;
         public List<Assessment> assessmentLibrary { get; set; }
+        Assessment activeAssessment;
+        string[][] activeFilter;
 
         //isolated storage
         IsolatedStorageFile isoStore;
@@ -207,6 +209,8 @@ namespace Auros
             activeUser = Definitions.UserCode.Therapist;
             assessmentLibrary = new List<Assessment>();
             InitAssessmentLibrary();
+            activeFilter = new string[2][];
+
             isoStore = IsolatedStorageFile.GetStore(IsolatedStorageScope.User | IsolatedStorageScope.Domain | IsolatedStorageScope.Assembly, null, null);
             InitFileStorage(Definitions.FunctionMode.Training.ToString());
             InitFileStorage(Definitions.FunctionMode.Classify.ToString());
@@ -223,9 +227,7 @@ namespace Auros
 
             InitView();
 
-            //HACK Emergency TEST Here
-           
-         
+            //HACK Emergency Test Here
         }
 
         private void InitView()
@@ -235,6 +237,7 @@ namespace Auros
             labellingComboBox.ItemsSource = Definitions.FMALabel;
             SettingGrid.Visibility = Visibility.Collapsed;
             ReportGrid.Visibility = Visibility.Collapsed;
+            activeAssessment = (Assessment)AssessmentListView.SelectedItem;
         }
 
         private void InitKinect()
@@ -382,7 +385,7 @@ namespace Auros
                     int j = 0;
                     foreach (string itm in ItemEachAssessmentCodeLine[i].Split(','))
                     {
-                        if (itm.Length == 3 && j != 0) 
+                        if (itm.Length == 3 && j != 0)
                         {
                             Item newItem = new Item();
                             newItem.ItemCode = (Definitions.ItemCode)Enum.Parse(typeof(Definitions.ItemCode), itm);
@@ -403,9 +406,59 @@ namespace Auros
 
         private void AssessmentListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            Assessment activeAssessment = (Assessment)AssessmentListView.SelectedItem;
+            try
+            {
+                File.Delete(Definitions.TempFileName);
+            }
+            catch (Exception exc)
+            {
+                Debug.WriteLine("[Error]Cant delete temp file" + exc.Message);
+            }
+            activeAssessment = (Assessment)AssessmentListView.SelectedItem;
+            string[] rawFilter = File.ReadAllLines(Definitions.FeaturedDataEachAssessmentPath);
+            string[][] dataFilter = new string[rawFilter.Length][];
+            int i = 0;
+            foreach (string rf in rawFilter)
+            {
+                dataFilter[i] = rf.Split(',');
+                if (dataFilter[i][0] == activeAssessment.AssessmentCode.ToString())
+                {
+                    activeFilter[0] = dataFilter[0];
+                    activeFilter[1] = dataFilter[i];
+                    break;
+                }
+                i++;
+            }
+            try
+            {
+                string dataHeader = activeFilter[0][1];
+                for (i = 2; i < activeFilter[1].Length; i++)
+                {
+                    if (activeFilter[1][i] == "1")
+                    {
+                        dataHeader += "," + activeFilter[0][i];
+                    }
+                }
+                csvBuilder.AppendLine(dataHeader);
+                File.AppendAllText(Definitions.TempFileName, csvBuilder.ToString());
+                Debug.WriteLine("[Success]Creating Filter and temporary data ");
+            }
+            catch (Exception exc)
+            {
+                Debug.WriteLine("[Error]Creating Filter and temporary data >" + exc.Message);
+            }            
+        }
+
+        private void ItemListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
 
         }
+
+        private void ScoreCombobox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
+
         #endregion
 
         #region Data Control
@@ -428,28 +481,57 @@ namespace Auros
                     ///7 - gz
                     /// </summary>
                     string[] gloveSensorData = gloveSensorDataRaw.Split('#');
-                                       
-                    if (gloveSensorData.Length == 8 && fJoints!=null) //data validation
+
+                    if (gloveSensorData.Length == 8 && fJoints != null) //data validation
                     {
                         if (isTimeStepping)
                         {
                             isTimeStepping = !isTimeStepping;
                             timerStep.Start();
                         }
-                        //TODO add kinect data, add timestamp data, and filter here
-                        string[] rawFilter = File.ReadAllLines(Definitions.FeaturedDataEachAssessmentPath);
-                        string[][] dataFilter = new string[rawFilter.Length][];
-                        int i = 0;
-                        foreach (string rf in rawFilter)
+  
+                        dataChunk += timerStep.ElapsedMilliseconds.ToString();
+                        for(int i=2;i<activeFilter[1].Length;i++)
                         {
-                            dataFilter[i] = rf.Split(',');
-                            i++;
+                            string apData = "";
+                            if (activeFilter[1][i] == "1")
+                            {
+                                switch (activeFilter[0][i])
+                                {
+                                    case "Flex":
+                                        apData = gloveSensorData[0];
+                                        break;
+                                    case "Force":
+                                        apData = gloveSensorData[1];
+                                        break;
+                                    case "Accel":
+                                        apData = gloveSensorData[2] + "*" + gloveSensorData[3] + "*" + gloveSensorData[4];
+                                        break;
+                                    case "Gyro":
+                                        apData = gloveSensorData[5] + "*" + gloveSensorData[6] + "*" + gloveSensorData[7];
+                                        break;
+                                }
+
+                                //TODO iterate through joint type and append data if exist
+                                if (apData == "")
+                                {
+                                    JointType selJoint;
+                                    Enum.TryParse(activeFilter[0][i], out selJoint);
+                                    apData += (fJoints[selJoint].Position.X.ToString() + "*" + fJoints[selJoint].Position.Y.ToString() + "*" + fJoints[selJoint].Position.Z.ToString());
+                                    if (fJoints[selJoint].Position.X.ToString() == ""|| fJoints[selJoint].Position.Y.ToString() == "" || fJoints[selJoint].Position.Z.ToString() == "")
+                                    {
+                                        int hsaas = 9;
+                                    }
+                                }
+                                dataChunk += ("," + apData);                               
+                            }
                         }
 
-                        //TODO save raw data to correct path here
-                        csvBuilder.Append(dataChunk);
-                        File.AppendAllText("glovesensor.csv", csvBuilder.ToString());
-                        Debug.WriteLine("[Success]Writing CSV file");
+                        csvBuilder = new StringBuilder();
+                        csvBuilder.AppendLine(dataChunk);
+                        File.AppendAllText(Definitions.TempFileName, csvBuilder.ToString());
+                        dataChunk = "";
+                        //Debug.WriteLine("[Success]Writing CSV file");
                     }
                     else
                     {
@@ -803,26 +885,18 @@ namespace Auros
             }
         }
 
-        private void ItemListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-
-        }
-
-        private void ScoreCombobox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-
-        }
 
         #endregion
 
         private void ButtonUp_Click(object sender, RoutedEventArgs e)
         {
+            //TODO do this whole button click shit
             if (functionMode == Definitions.FunctionMode.Training)
             {
                 switch (trainingState)
                 {
+
                     case Definitions.TrainingState.Video:
-                        //TODO replay video
                         break;
                     case Definitions.TrainingState.Idle:
                         trainingState = Definitions.TrainingState.Video;
@@ -834,7 +908,6 @@ namespace Auros
                         trainingState = Definitions.TrainingState.Idle;
                         break;
                     case Definitions.TrainingState.Labelling:
-                        //TODO complicated interating shit
                         break;
                     case Definitions.TrainingState.Confirmation:
                         trainingState = Definitions.TrainingState.Idle;
@@ -867,7 +940,6 @@ namespace Auros
                         trainingState = Definitions.TrainingState.Labelling;
                         break;
                     case Definitions.TrainingState.Labelling:
-                        //TODO incrementing FMA score
                         trainingState = Definitions.TrainingState.Confirmation;
                         break;
                     case Definitions.TrainingState.Confirmation:
