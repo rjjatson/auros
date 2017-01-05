@@ -223,6 +223,9 @@ namespace Auros
 
             InitView();
 
+            //HACK Emergency TEST Here
+           
+         
         }
 
         private void InitView()
@@ -379,7 +382,7 @@ namespace Auros
                     int j = 0;
                     foreach (string itm in ItemEachAssessmentCodeLine[i].Split(','))
                     {
-                        if (itm.Length == 3 && j != 0) //error checking, exclude first columns
+                        if (itm.Length == 3 && j != 0) 
                         {
                             Item newItem = new Item();
                             newItem.ItemCode = (Definitions.ItemCode)Enum.Parse(typeof(Definitions.ItemCode), itm);
@@ -406,38 +409,44 @@ namespace Auros
         #endregion
 
         #region Data Control
-        private void FetchSensorData(IReadOnlyDictionary<JointType, Joint> joints)
+        private void FetchSensorData(IReadOnlyDictionary<JointType, Joint> fJoints)
         {
             string dataChunk = "";
-
             if (isRecording)
             {
                 try
                 {
                     string gloveSensorDataRaw = gloveSerial.ReadPort();
+                    ///<summary>
+                    ///0 - flex
+                    ///1 - force
+                    ///2 - ax
+                    ///3 - ay
+                    ///4 - az
+                    ///5 - gx
+                    ///6 - gy
+                    ///7 - gz
+                    /// </summary>
                     string[] gloveSensorData = gloveSensorDataRaw.Split('#');
-
-                    foreach (string s in gloveSensorData)
+                                       
+                    if (gloveSensorData.Length == 8 && fJoints!=null) //data validation
                     {
-                        if (s.Contains("\r"))
-                        {
-                            s.Remove(s.Length - 2);
-                            dataChunk += s;
-                        }
-                        else
-                        {
-                            dataChunk += (s + ',');
-                        }
-                    }
-                    if (dataChunk != null && gloveSensorData.Length == 8)
-                    {
-                        //timestepping exactly in the begining of record
                         if (isTimeStepping)
                         {
                             isTimeStepping = !isTimeStepping;
                             timerStep.Start();
                         }
+                        //TODO add kinect data, add timestamp data, and filter here
+                        string[] rawFilter = File.ReadAllLines(Definitions.FeaturedDataEachAssessmentPath);
+                        string[][] dataFilter = new string[rawFilter.Length][];
+                        int i = 0;
+                        foreach (string rf in rawFilter)
+                        {
+                            dataFilter[i] = rf.Split(',');
+                            i++;
+                        }
 
+                        //TODO save raw data to correct path here
                         csvBuilder.Append(dataChunk);
                         File.AppendAllText("glovesensor.csv", csvBuilder.ToString());
                         Debug.WriteLine("[Success]Writing CSV file");
@@ -517,8 +526,7 @@ namespace Auros
                     // Draw a transparent background to set the render size
                     dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
                     int penIndex = 0;
-                    //TODO : Clear data buffer
-                    //TODO : Handle body lebih dari satu
+                    //HACK Clear data buffer, Handle body lebih dari satu
 
                     foreach (Body body in this.bodies)
                     {
