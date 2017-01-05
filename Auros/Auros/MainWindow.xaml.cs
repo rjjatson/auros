@@ -17,6 +17,7 @@ using Microsoft.Kinect;
 using System.ComponentModel;
 using System.Windows.Threading;
 using System.IO;
+using System.IO.IsolatedStorage;
 
 namespace Auros
 {
@@ -177,13 +178,64 @@ namespace Auros
         StringBuilder csvBuilder;
         public List<Assessment> assessmentLibrary { get; set; }
 
-        //debuging var
-        bool isRecording = false;
+        //isolated storage
+        IsolatedStorageFile isoStore;
+
+        ///<summary>
+        ///Harus Di assign di constructor, buat ngecek file juga
+        ///</summary>   
+        public Definitions.UserCode activeUser;
+
+        Definitions.FunctionMode functionMode;
+        Definitions.TrainingState trainingState;
+        Definitions.ClassifyingState classifyingState;
+
+        Stopwatch timerStep;
+        bool isRecording;
+        bool isTimeStepping;
 
         public MainWindow()
         {
-            //init source
-            #region KinectInit
+            InitKinect();
+
+            ClearElements();
+            gloveSerial = new Serial();
+            gloveSerial.OpenPort(0);
+            jointManager = new JointManager();
+            csvBuilder = new StringBuilder();
+
+            activeUser = Definitions.UserCode.Therapist;
+            assessmentLibrary = new List<Assessment>();
+            InitAssessmentLibrary();
+            isoStore = IsolatedStorageFile.GetStore(IsolatedStorageScope.User | IsolatedStorageScope.Domain | IsolatedStorageScope.Assembly, null, null);
+            InitFileStorage(Definitions.FunctionMode.Training.ToString());
+            InitFileStorage(Definitions.FunctionMode.Classify.ToString());
+
+            timerStep = new Stopwatch();
+            isRecording = false;
+            isTimeStepping = false;
+
+            InitializeComponent();
+
+            functionMode = Definitions.FunctionMode.Training;
+            trainingState = Definitions.TrainingState.Video;
+            classifyingState = Definitions.ClassifyingState.Video;
+
+            InitView();
+
+        }
+
+        private void InitView()
+        {
+            AssessmentListView.DataContext = this;
+            AssessmentListView.SelectedIndex = 0;
+            labellingComboBox.ItemsSource = Definitions.FMALabel;
+            SettingGrid.Visibility = Visibility.Collapsed;
+            ReportGrid.Visibility = Visibility.Collapsed;
+        }
+
+        private void InitKinect()
+        {
             // one sensor is currently supported
             this.kinectSensor = KinectSensor.GetDefault();
 
@@ -265,20 +317,35 @@ namespace Auros
 
             // use the window object as the view model in this simple example
             this.DataContext = this;
-            #endregion
-            ClearElements();
-            gloveSerial = new Serial();
-            gloveSerial.OpenPort(0);
-            jointManager = new JointManager();
-            csvBuilder = new StringBuilder();
+        }
 
-            assessmentLibrary = new List<Assessment>();
-            InitAssessmentLibrary();
+        private void InitFileStorage(String FirstLevelDir)
+        {
+            try
+            {
+                foreach (Assessment ass in assessmentLibrary)
+                {
+                    string assDir = FirstLevelDir + "/Raw/" + ass.AssessmentCode.ToString() + "/" + activeUser.ToString();
+                    if (!isoStore.DirectoryExists(assDir))
+                        isoStore.CreateDirectory(assDir);
+                    ass.RawDataPath = assDir;
+                    //TODO count available assessment data for the current user here
 
-            InitializeComponent();
-
-            //init element
-            AssessmentListView.DataContext = this;
+                    foreach (Item itm in ass.AssociatedItemList)
+                    {
+                        string itmDir = FirstLevelDir + "/Preproc/" + itm.ItemCode.ToString() + "/" + activeUser.ToString();
+                        if (!isoStore.DirectoryExists(itmDir))
+                            isoStore.CreateDirectory(itmDir);
+                        itm.PreProcDataPath = itmDir;
+                        //TODO count available preproc item data for the current user here
+                    }
+                }
+                Debug.WriteLine("[Success]Initializing folder");
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("[Error]Initializing folder >" + e.Message);
+            }
         }
 
         #region Assessment Object Control
@@ -307,20 +374,16 @@ namespace Auros
             {
                 string[] ItemEachAssessmentCodeLine = File.ReadAllLines(Definitions.ItemEachAssessmentPath);
                 int i = 0;
-                foreach(Assessment ass in assessmentLibrary)
+                foreach (Assessment ass in assessmentLibrary)
                 {
                     int j = 0;
-                    foreach(string itm in ItemEachAssessmentCodeLine[i].Split(','))
+                    foreach (string itm in ItemEachAssessmentCodeLine[i].Split(','))
                     {
-                        if (itm.Length==3&&j!=0) //error checking, exclude first columns
+                        if (itm.Length == 3 && j != 0) //error checking, exclude first columns
                         {
                             Item newItem = new Item();
                             newItem.ItemCode = (Definitions.ItemCode)Enum.Parse(typeof(Definitions.ItemCode), itm);
                             ass.AssociatedItemList.Add(newItem);
-                        }
-                        else
-                        {
-                            int g = 0;
                         }
                         j++;
                     }
@@ -332,11 +395,12 @@ namespace Auros
             {
                 Debug.WriteLine("[Error]Load Item object to assessment library >" + e.Message);
             }
-            
+
         }
 
         private void AssessmentListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            Assessment activeAssessment = (Assessment)AssessmentListView.SelectedItem;
 
         }
         #endregion
@@ -367,6 +431,13 @@ namespace Auros
                     }
                     if (dataChunk != null && gloveSensorData.Length == 8)
                     {
+                        //timestepping exactly in the begining of record
+                        if (isTimeStepping)
+                        {
+                            isTimeStepping = !isTimeStepping;
+                            timerStep.Start();
+                        }
+
                         csvBuilder.Append(dataChunk);
                         File.AppendAllText("glovesensor.csv", csvBuilder.ToString());
                         Debug.WriteLine("[Success]Writing CSV file");
@@ -381,21 +452,33 @@ namespace Auros
                     Debug.WriteLine("[Error]Fail Writing CSV file > " + e.Message);
                 }
             }
+            else
+            {
+                if (!isTimeStepping) isTimeStepping = !isTimeStepping;
+            }
         }
         private void KeyPressed(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Up)
             {
-
+                ButtonUp_Click(this, null);
             }
             else if (e.Key == Key.Down)
             {
-
+                ButtonDown_Click(this, null);
             }
             else if (e.Key == Key.Enter)
             {
                 isRecording = !isRecording;
             }
+        }
+        private void UpdateContent(Definitions.TrainingState ts)
+        {
+            throw new NotImplementedException();
+        }
+        private void UpdateContent(Definitions.ClassifyingState cs)
+        {
+            throw new NotImplementedException();
         }
         #endregion
 
@@ -663,24 +746,134 @@ namespace Auros
 
         private void Train_Click(object sender, RoutedEventArgs e)
         {
-
+            functionMode = Definitions.FunctionMode.Training;
+            UpdateWindow(functionMode);
         }
 
         private void Score_Click(object sender, RoutedEventArgs e)
         {
-
+            functionMode = Definitions.FunctionMode.Classify;
+            UpdateWindow(functionMode);
         }
 
         private void Report_Click(object sender, RoutedEventArgs e)
         {
-
+            functionMode = Definitions.FunctionMode.Report;
+            UpdateWindow(functionMode);
         }
 
         private void Setting_Click(object sender, RoutedEventArgs e)
         {
+            functionMode = Definitions.FunctionMode.Setting;
+            UpdateWindow(functionMode);
+        }
+
+        private void UpdateWindow(Definitions.FunctionMode fm)
+        {
+            ContentGrid.Visibility = Visibility.Collapsed;
+            ReportGrid.Visibility = Visibility.Collapsed;
+            SettingGrid.Visibility = Visibility.Collapsed;
+
+            switch (fm)
+            {
+                case Definitions.FunctionMode.Training:
+                    ContentGrid.Visibility = Visibility.Visible;
+
+                    break;
+                case Definitions.FunctionMode.Classify:
+                    ContentGrid.Visibility = Visibility.Visible;
+
+                    break;
+                case Definitions.FunctionMode.Report:
+                    ReportGrid.Visibility = Visibility.Visible;
+
+                    break;
+                case Definitions.FunctionMode.Setting:
+                    SettingGrid.Visibility = Visibility.Visible;
+
+                    break;
+            }
+        }
+
+        private void ItemListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
 
         }
+
+        private void ScoreCombobox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
+
         #endregion
+
+        private void ButtonUp_Click(object sender, RoutedEventArgs e)
+        {
+            if (functionMode == Definitions.FunctionMode.Training)
+            {
+                switch (trainingState)
+                {
+                    case Definitions.TrainingState.Video:
+                        //TODO replay video
+                        break;
+                    case Definitions.TrainingState.Idle:
+                        trainingState = Definitions.TrainingState.Video;
+                        break;
+                    case Definitions.TrainingState.Recording:
+                        trainingState = Definitions.TrainingState.Idle;
+                        break;
+                    case Definitions.TrainingState.Hold:
+                        trainingState = Definitions.TrainingState.Idle;
+                        break;
+                    case Definitions.TrainingState.Labelling:
+                        //TODO complicated interating shit
+                        break;
+                    case Definitions.TrainingState.Confirmation:
+                        trainingState = Definitions.TrainingState.Idle;
+                        break;
+                }
+
+                UpdateContent(trainingState);
+            }
+            else if (functionMode == Definitions.FunctionMode.Classify)
+            {
+                UpdateContent(classifyingState);
+            }
+        }
+        private void ButtonDown_Click(object sender, RoutedEventArgs e)
+        {
+            if (functionMode == Definitions.FunctionMode.Training)
+            {
+                switch (trainingState)
+                {
+                    case Definitions.TrainingState.Video:
+                        trainingState = Definitions.TrainingState.Idle;
+                        break;
+                    case Definitions.TrainingState.Idle:
+                        trainingState = Definitions.TrainingState.Recording;
+                        break;
+                    case Definitions.TrainingState.Recording:
+                        trainingState = Definitions.TrainingState.Hold;
+                        break;
+                    case Definitions.TrainingState.Hold:
+                        trainingState = Definitions.TrainingState.Labelling;
+                        break;
+                    case Definitions.TrainingState.Labelling:
+                        //TODO incrementing FMA score
+                        trainingState = Definitions.TrainingState.Confirmation;
+                        break;
+                    case Definitions.TrainingState.Confirmation:
+                        trainingState = Definitions.TrainingState.Video;
+                        break;
+                }
+                UpdateContent(trainingState);
+            }
+            else if (functionMode == Definitions.FunctionMode.Classify)
+            {
+                UpdateContent(classifyingState);
+            }
+        }
+
 
     }
 }

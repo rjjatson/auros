@@ -10,15 +10,16 @@ namespace Auros
     {
         public Definitions.AssessmentCode AssessmentCode;
         public string AssessmentName { get; set; }
+        public List<Item> AssociatedItemList;
 
         public string VideoPath;
         public string RawDataPath;        
         public int storedRawDataNum;
 
-        public List<Item> AssociatedItemList;
 
         public Assessment()
         {
+            AssessmentName = string.Empty;
             AssociatedItemList = new List<Item>();
         }
     }

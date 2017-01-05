@@ -24,6 +24,8 @@ namespace Auros
         public static int ReadTimeout = 500;
         public static int WriteTimeout = 500;
 
+        public static int[] FMALabel = new int[3] {0,1,2 };
+
         public static string FeaturedDataEachAssessmentPath = "D://Project//AUROS//Desktop/Auros//Auros//data//filter//FeaturedDataEachAssessment.csv";
         public static string ItemEachAssessmentPath = "D://Project//AUROS//Desktop//Auros//Auros//data//filter//ItemEachAssessment.csv";
 
@@ -88,8 +90,16 @@ namespace Auros
             L41,
             L42,
             L51,
-            L61            
+            L61
         };
+
+        public enum FunctionMode
+        {
+            Training,
+            Classify,
+            Report,
+            Setting
+        }
 
         public static List<String> AssessItemName = new List<string>()
         {
@@ -129,8 +139,6 @@ namespace Auros
             "Normal Reflex",                                                                        //L51
             "Heel to Opposite Knee"                                                                 //L61
         };
-
-
         public enum ItemCode
         {
             //TODO : explain each item in brief
@@ -188,5 +196,40 @@ namespace Auros
             L6B,
             L6C
         };
+        /// <summary>
+        /// kode user yang memakai aps
+        /// current (therapist, Patient A)
+        /// </summary>
+        public enum UserCode
+        {
+            Therapist,
+            PatientA
+        }
+
+        /// <summary>
+        /// Direktori level pertama penyimpanan data
+        /// current (train, classify)
+        /// </summary>
+       
+
+        public enum TrainingState
+        {
+            Video,
+            Idle,
+            Recording,
+            Hold,
+            Labelling,
+            Confirmation
+        }
+
+        public enum ClassifyingState
+        {
+            Video,
+            Idle,
+            Recording,
+            Hold,
+            Confirmation,
+        }
+        
     }
 }

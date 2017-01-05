@@ -34,6 +34,9 @@
                         <Image Source="data/icon/settings49.png"></Image>
                     </Button>
                 </StackPanel>
+                <StatusBar FontSize="9" HorizontalAlignment="Stretch" Name="statusBar" VerticalAlignment="Bottom" Background="White" Foreground="Gray">
+                    <StatusBarItem Content="{Binding StatusText}" />
+                </StatusBar>
             </Grid>
 
             <Grid Grid.Column="1" x:Name="ListGrid" >
@@ -46,16 +49,44 @@
                 </ListView>
             </Grid>
 
+            <!--Grid for training and classifying-->
             <Grid Grid.Column="2" x:Name="ContentGrid">
-                <Grid x:Name="ContentTrainGrid">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="0.9*"/>
+                    <RowDefinition Height="0.1*"/>                    
+                </Grid.RowDefinitions>                
+                <Grid x:Name="DisplayGrid" Grid.Row="0">
                     <Viewbox HorizontalAlignment="Center" VerticalAlignment="Center">
                         <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
                     </Viewbox>
                 </Grid>
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Name="RibbonInstructionText" Grid.Column="0" Text="Collected Data On This Assessment 4"/>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Name="ItemToAssessText" Text="Shoulder Flexion"/>
+                        <ComboBox Name="labellingComboBox" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right">
+                        <Button Name="ButtonUp" Content="--up--" Click="ButtonUp_Click" />
+                        <Button Name="ButtonDown" Content="down" Click="ButtonDown_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+            
+            <!--Grid for report-->
+            <Grid Name="ReportGrid" Grid.Column="2">
+                <TextBlock Text="Report will be here"/>
+            </Grid>
+            <!--Grid For setting-->
+            <Grid Name="SettingGrid" Grid.Column="2">
+                <TextBlock Text="Setting will be here"/>
             </Grid>
         </Grid>
-        <StatusBar Grid.Row="2" HorizontalAlignment="Stretch" Name="statusBar" VerticalAlignment="Bottom" Background="White" Foreground="Gray">
-            <StatusBarItem Content="{Binding StatusText}" />
-        </StatusBar>
+        
     </Grid>
 </Window>
