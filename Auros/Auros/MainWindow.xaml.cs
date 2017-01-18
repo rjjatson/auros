@@ -18,6 +18,8 @@ using System.ComponentModel;
 using System.Windows.Threading;
 using System.IO;
 using System.IO.IsolatedStorage;
+using System.Timers;
+using System.Threading;
 
 namespace Auros
 {
@@ -175,9 +177,15 @@ namespace Auros
         //class def
         JointManager jointManager;
         Serial gloveSerial;
-        StringBuilder csvBuilder;
+        StringBuilder csvHeaderBuilder;
+        StringBuilder csvDataBuilder;
         public List<Assessment> assessmentLibrary { get; set; }
         Assessment activeAssessment;
+
+        /// <summary>
+        /// row [0][i] - nama fitur
+        /// row [1][i] - flag fitur
+        /// </summary>
         string[][] activeFilter;
 
         //isolated storage
@@ -196,6 +204,9 @@ namespace Auros
         bool isRecording;
         bool isTimeStepping;
 
+        //Emergency Properties
+        private readonly System.Timers.Timer emergencyTimer;
+
         public MainWindow()
         {
             InitKinect();
@@ -204,7 +215,8 @@ namespace Auros
             gloveSerial = new Serial();
             gloveSerial.OpenPort(0);
             jointManager = new JointManager();
-            csvBuilder = new StringBuilder();
+            csvHeaderBuilder = new StringBuilder();
+            csvDataBuilder = new StringBuilder();
 
             activeUser = Definitions.UserCode.Therapist;
             assessmentLibrary = new List<Assessment>();
@@ -228,6 +240,45 @@ namespace Auros
             InitView();
 
             //HACK Emergency Test Here
+            emergencyTimer = new System.Timers.Timer(200);
+            emergencyTimer.Elapsed += new System.Timers.ElapsedEventHandler(EmergencyLoop);
+        }
+
+        /// <summary>
+        /// Emergency Loop
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void EmergencyLoop(object sender, ElapsedEventArgs e)
+        {
+            //HACK --------- put emergency method here 
+            Dictionary<JointType, Joint> joints = new Dictionary<JointType, Joint>();
+            Array jointIteration = Enum.GetValues(typeof(JointType));
+            foreach (var j in jointIteration)
+            {
+                System.Random r = new System.Random();
+                Joint newJoint = new Joint();
+                newJoint.Position.X = (float)999;
+                newJoint.Position.Y = (float)999;
+                newJoint.Position.Z = (float)999;
+                joints.Add((JointType)j, newJoint);
+            }
+            IReadOnlyDictionary<JointType, Joint> roJoint = joints;
+            FetchSensorData(roJoint);
+
+        }
+
+        /// <summary>
+        /// Toggle emergency loop
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void PlayClick_Handler(object sender, RoutedEventArgs e)
+        {
+            var enabler = emergencyTimer.Enabled;
+            emergencyTimer.Enabled = !(emergencyTimer.Enabled);
+            if (enabler) EmergencyLoopButton.Content = "active";
+            if (!enabler) EmergencyLoopButton.Content = "deactive";
         }
 
         private void InitView()
@@ -409,6 +460,7 @@ namespace Auros
             try
             {
                 File.Delete(Definitions.TempFileName);
+                Debug.WriteLine("[Success]Delete temporary data ");
             }
             catch (Exception exc)
             {
@@ -439,14 +491,15 @@ namespace Auros
                         dataHeader += "," + activeFilter[0][i];
                     }
                 }
-                csvBuilder.AppendLine(dataHeader);
-                File.AppendAllText(Definitions.TempFileName, csvBuilder.ToString());
+                csvHeaderBuilder = new StringBuilder();
+                csvHeaderBuilder.AppendLine(dataHeader);
+                File.AppendAllText(Definitions.TempFileName, csvHeaderBuilder.ToString());
                 Debug.WriteLine("[Success]Creating Filter and temporary data ");
             }
             catch (Exception exc)
             {
                 Debug.WriteLine("[Error]Creating Filter and temporary data >" + exc.Message);
-            }            
+            }
         }
 
         private void ItemListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -469,67 +522,83 @@ namespace Auros
             {
                 try
                 {
-                    string gloveSensorDataRaw = gloveSerial.ReadPort();
-                    ///<summary>
-                    ///0 - flex
-                    ///1 - force
-                    ///2 - ax
-                    ///3 - ay
-                    ///4 - az
-                    ///5 - gx
-                    ///6 - gy
-                    ///7 - gz
-                    /// </summary>
-                    string[] gloveSensorData = gloveSensorDataRaw.Split('#');
-
-                    if (gloveSensorData.Length == 8 && fJoints != null) //data validation
+                    string[] gloveSensorData = new string[8];
+                    if (!emergencyTimer.Enabled)
                     {
-                        if (isTimeStepping)
+                        string gloveSensorDataRaw = gloveSerial.ReadPort();
+                        ///<summary>
+                        ///0 - flex
+                        ///1 - force
+                        ///2 - ax
+                        ///3 - ay
+                        ///4 - az
+                        ///5 - gx
+                        ///6 - gy
+                        ///7 - gz
+                        /// </summary>
+                        gloveSensorData = gloveSensorDataRaw.Split('#');
+                    }
+                    else
+                    {
+                        gloveSensorData = new string[8];
+                        for (int i = 0; i < gloveSensorData.Length; i++)
+                        {
+                            gloveSensorData[i] = "111";
+                        }
+                    }
+
+                    if (gloveSensorData.Length == 8 && fJoints != null) //glove data validation to avoid lead time
+                    {
+                        //toggle time step
+                        if (!isTimeStepping)
                         {
                             isTimeStepping = !isTimeStepping;
                             timerStep.Start();
                         }
-  
                         dataChunk += timerStep.ElapsedMilliseconds.ToString();
-                        for(int i=2;i<activeFilter[1].Length;i++)
+                        for (int i = 2; i < activeFilter[1].Length; i++) //cek flag mulai dari setelah time stamp ke kanan
                         {
                             string apData = "";
                             if (activeFilter[1][i] == "1")
                             {
-                                switch (activeFilter[0][i])
+                                if (activeFilter[0][i] == "Flex" || activeFilter[0][i] == "Force" || activeFilter[0][i] == "Accel" || activeFilter[0][i] == "Gyro")
                                 {
-                                    case "Flex":
-                                        apData = gloveSensorData[0];
-                                        break;
-                                    case "Force":
-                                        apData = gloveSensorData[1];
-                                        break;
-                                    case "Accel":
-                                        apData = gloveSensorData[2] + "*" + gloveSensorData[3] + "*" + gloveSensorData[4];
-                                        break;
-                                    case "Gyro":
-                                        apData = gloveSensorData[5] + "*" + gloveSensorData[6] + "*" + gloveSensorData[7];
-                                        break;
+                                    switch (activeFilter[0][i])
+                                    {
+                                        case "Flex":
+                                            apData = gloveSensorData[0];
+                                            break;
+                                        case "Force":
+                                            apData = gloveSensorData[1];
+                                            break;
+                                        case "Accel":
+                                            apData = gloveSensorData[2] + "*" + gloveSensorData[3] + "*" + gloveSensorData[4];
+                                            break;
+                                        case "Gyro":
+                                            apData = gloveSensorData[5] + "*" + gloveSensorData[6] + "*" + gloveSensorData[7];
+                                            break;
+                                    }
                                 }
-
-                                //TODO iterate through joint type and append data if exist
-                                if (apData == "")
+                                else
                                 {
                                     JointType selJoint;
                                     Enum.TryParse(activeFilter[0][i], out selJoint);
                                     apData += (fJoints[selJoint].Position.X.ToString() + "*" + fJoints[selJoint].Position.Y.ToString() + "*" + fJoints[selJoint].Position.Z.ToString());
-                                    if (fJoints[selJoint].Position.X.ToString() == ""|| fJoints[selJoint].Position.Y.ToString() == "" || fJoints[selJoint].Position.Z.ToString() == "")
-                                    {
-                                        int hsaas = 9;
-                                    }
+                                    if (apData == "") Debug.WriteLine("[Error]Fail parsing filter header");
+                                    //HACK Kenapa ada joint position yang kosong?                                    
                                 }
-                                dataChunk += ("," + apData);                               
+                                Debug.WriteLine("[Debug] appended string " + apData);
+                                dataChunk += ("," + apData);
+                            }
+                            else
+                            {
+                                //ignore data enter
                             }
                         }
 
-                        csvBuilder = new StringBuilder();
-                        csvBuilder.AppendLine(dataChunk);
-                        File.AppendAllText(Definitions.TempFileName, csvBuilder.ToString());
+                        csvDataBuilder = new StringBuilder();
+                        csvDataBuilder.AppendLine(dataChunk);
+                        File.AppendAllText(Definitions.TempFileName, csvDataBuilder.ToString());
                         dataChunk = "";
                         //Debug.WriteLine("[Success]Writing CSV file");
                     }
@@ -545,7 +614,13 @@ namespace Auros
             }
             else
             {
-                if (!isTimeStepping) isTimeStepping = !isTimeStepping;
+                //kalau recording stop time step harus stop juga
+                if (isTimeStepping)
+                {
+                    isTimeStepping = !isTimeStepping;
+                    timerStep.Stop();
+                    timerStep.Reset();
+                }
             }
         }
         private void KeyPressed(object sender, KeyEventArgs e)
@@ -558,7 +633,7 @@ namespace Auros
             {
                 ButtonDown_Click(this, null);
             }
-            else if (e.Key == Key.Enter)
+            else if (e.Key == Key.B)
             {
                 isRecording = !isRecording;
             }
@@ -608,7 +683,7 @@ namespace Auros
                     // Draw a transparent background to set the render size
                     dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
                     int penIndex = 0;
-                    //HACK Clear data buffer, Handle body lebih dari satu
+                    //TODO Clear data buffer, Handle body lebih dari satu
 
                     foreach (Body body in this.bodies)
                     {
@@ -618,6 +693,7 @@ namespace Auros
                         {
                             this.DrawClippedEdges(body, dc);
 
+                            //TODO ---------Data fetching entry point
                             IReadOnlyDictionary<JointType, Joint> joints = body.Joints;
                             FetchSensorData(joints);
 
