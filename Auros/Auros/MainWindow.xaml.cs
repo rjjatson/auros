@@ -246,16 +246,16 @@ namespace Auros
             emergencyTimer.Elapsed += new System.Timers.ElapsedEventHandler(EmergencyLoop);
 
             try
-            {                
+            {
                 //testing media player
                 BigVideoPlayer.Source = new Uri("data/video/U11.mp4", UriKind.Relative);
                 BigVideoPlayer.Play();
                 Debug.WriteLine("[Success]Opening video");
             }
-            catch(Exception exc)
+            catch (Exception exc)
             {
-                Debug.WriteLine("[Error]Fail test opening video"+exc.Message);
-            }           
+                Debug.WriteLine("[Error]Fail test opening video" + exc.Message);
+            }
         }
 
         /// <summary>
@@ -295,14 +295,17 @@ namespace Auros
             if (!enabler) EmergencyLoopButton.Content = "ON";
         }
 
+
         private void InitView()
         {
             AssessmentListView.DataContext = this;
             AssessmentListView.SelectedIndex = 0;
+            activeAssessment = (Assessment)AssessmentListView.SelectedItem;
+            functionMode = Definitions.FunctionMode.Training;
+
             labellingComboBox.ItemsSource = Definitions.FMALabel;
             SettingGrid.Visibility = Visibility.Collapsed;
             ReportGrid.Visibility = Visibility.Collapsed;
-            activeAssessment = (Assessment)AssessmentListView.SelectedItem;
         }
 
         private void InitKinect()
@@ -514,6 +517,16 @@ namespace Auros
             {
                 Debug.WriteLine("[Error]Creating Filter and temporary data >" + exc.Message);
             }
+
+            if (functionMode == Definitions.FunctionMode.Training)
+            {
+                UpdateContent(trainingState);
+            }
+            else if (functionMode == Definitions.FunctionMode.Classify)
+            {
+                UpdateContent(classifyingState);
+            }
+
         }
 
         private void ItemListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -599,7 +612,7 @@ namespace Auros
                                     Enum.TryParse(activeFilter[0][i], out selJoint);
                                     apData += (fJoints[selJoint].Position.X.ToString() + "*" + fJoints[selJoint].Position.Y.ToString() + "*" + fJoints[selJoint].Position.Z.ToString());
                                     if (apData == "") Debug.WriteLine("[Error]Fail parsing filter header");
-                                                                    
+
                                 }
                                 Debug.WriteLine("[Debug] appended string " + apData);
                                 dataChunk += ("," + apData);
@@ -652,14 +665,7 @@ namespace Auros
                 isRecording = !isRecording;
             }
         }
-        private void UpdateContent(Definitions.TrainingState ts)
-        {
-            throw new NotImplementedException();
-        }
-        private void UpdateContent(Definitions.ClassifyingState cs)
-        {
-            throw new NotImplementedException();
-        }
+
         #endregion
 
         #region Kinect SDK    
@@ -706,7 +712,7 @@ namespace Auros
                         if (body.IsTracked)
                         {
                             this.DrawClippedEdges(body, dc);
-                            
+
                             IReadOnlyDictionary<JointType, Joint> joints = body.Joints;
                             FetchSensorData(joints);
 
@@ -974,9 +980,21 @@ namespace Auros
             }
         }
 
+        private void BigVideoPlayer_MediaEnded(object sender, RoutedEventArgs e)
+        {
+            BigVideoPlayer.Position = TimeSpan.FromSeconds(0);
+            BigVideoPlayer.Play();
+        }
+
+        private void SmallVideoPlayer_MediaEnded(object sender, RoutedEventArgs e)
+        {
+            SmallVideoPlayer.Position = TimeSpan.FromSeconds(0);
+            SmallVideoPlayer.Play();
+        }
 
         #endregion
 
+        #region Finite State
         private void ButtonUp_Click(object sender, RoutedEventArgs e)
         {
             //UNDONE do this whole button click shit
@@ -984,7 +1002,6 @@ namespace Auros
             {
                 switch (trainingState)
                 {
-
                     case Definitions.TrainingState.Video:
                         break;
                     case Definitions.TrainingState.Idle:
@@ -1007,6 +1024,7 @@ namespace Auros
             }
             else if (functionMode == Definitions.FunctionMode.Classify)
             {
+                //TODO add classify switch
                 UpdateContent(classifyingState);
             }
         }
@@ -1039,10 +1057,49 @@ namespace Auros
             }
             else if (functionMode == Definitions.FunctionMode.Classify)
             {
+                //TODO add classify switch
                 UpdateContent(classifyingState);
             }
         }
 
+        private void UpdateContent(Definitions.TrainingState ts)
+        {
+            switch (ts)
+            {
+                case Definitions.TrainingState.Video:
+                    try
+                    {
+                        BigVideoPlayer.Source = new Uri("data/video/" + activeAssessment.AssessmentCode.ToString() + ".mp4", UriKind.Relative);
+                        BigVideoPlayer.Play();
+                        Debug.WriteLine("[Success]Playing video " + "data/video/" + activeAssessment.AssessmentCode.ToString() + ".mp4", UriKind.Relative);
+                    }
+                    catch (Exception exc)
+                    {
+                        Debug.WriteLine("[Error] " + exc.Message);
+                    }
+                    break;
+                case Definitions.TrainingState.Idle:
 
+                    break;
+                case Definitions.TrainingState.Recording:
+
+
+                    break;
+                case Definitions.TrainingState.Hold:
+
+                    break;
+                case Definitions.TrainingState.Labelling:
+
+                    break;
+                case Definitions.TrainingState.Confirmation:
+
+                    break;
+            }
+        }
+        private void UpdateContent(Definitions.ClassifyingState cs)
+        {
+            throw new NotImplementedException();
+        }
+        #endregion
     }
 }

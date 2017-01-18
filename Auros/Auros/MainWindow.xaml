@@ -56,8 +56,8 @@
                     <RowDefinition Height="0.1*"/>                    
                 </Grid.RowDefinitions>                
                 <Grid x:Name="DisplayGrid" Grid.Row="0">                    
-                    <MediaElement Name="BigVideoPlayer" LoadedBehavior="Manual"/>
-                    <MediaElement Name="SmallVideoPlayer" Width="240" Height="135" VerticalAlignment="Bottom" HorizontalAlignment="Right" />
+                    <MediaElement Name="BigVideoPlayer" LoadedBehavior="Manual" MediaEnded="BigVideoPlayer_MediaEnded" />
+                    <MediaElement Name="SmallVideoPlayer" Width="240" Height="135" VerticalAlignment="Bottom" HorizontalAlignment="Right" MediaEnded="SmallVideoPlayer_MediaEnded" />
                     <Viewbox HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
                         <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
                     </Viewbox>
