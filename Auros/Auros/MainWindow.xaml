@@ -34,9 +34,15 @@
                         <Image Source="data/icon/settings49.png"></Image>
                     </Button>
                 </StackPanel>
-                <StatusBar FontSize="9" HorizontalAlignment="Stretch" Name="statusBar" VerticalAlignment="Bottom" Background="White" Foreground="Gray">
-                    <StatusBarItem Content="{Binding StatusText}" />
-                </StatusBar>
+                <StackPanel Name="DebugStatusText" VerticalAlignment="Bottom">
+                    <TextBlock Name="FuncText" FontSize="9" Text="C" Background="White" Foreground="Gray" />
+                    <TextBlock Name="StateText" FontSize="9" Text="Idle" Background="White" Foreground="Gray" />
+                    <StatusBar FontSize="9" HorizontalAlignment="Stretch" Name="statusBar"  Background="White" Foreground="Gray">
+                        <StatusBarItem Content="{Binding StatusText}" />
+                    </StatusBar>
+                    
+                </StackPanel>
+                
             </Grid>
 
             <Grid Grid.Column="1" x:Name="ListGrid" >
