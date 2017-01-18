@@ -245,19 +245,7 @@ namespace Auros
 
             //HACK Emergency Test Here
             emergencyTimer = new System.Timers.Timer(200);
-            emergencyTimer.Elapsed += new System.Timers.ElapsedEventHandler(EmergencyLoop);
-
-            try
-            {
-                //testing media player
-                BigVideoPlayer.Source = new Uri("data/video/U11.mp4", UriKind.Relative);
-                BigVideoPlayer.Play();
-                Debug.WriteLine("[Success]Opening video");
-            }
-            catch (Exception exc)
-            {
-                Debug.WriteLine("[Error]Fail test opening video" + exc.Message);
-            }
+            emergencyTimer.Elapsed += new System.Timers.ElapsedEventHandler(EmergencyLoop);           
         }
 
         #region Emergency Event
@@ -425,8 +413,7 @@ namespace Auros
             }
         }
         #endregion
-
-
+        
         #region Kinect SDK    
 
         /// <summary>
@@ -717,8 +704,19 @@ namespace Auros
                 Debug.WriteLine("[Error]Cant delete temp file" + exc.Message);
             }
             activeAssessment = (Assessment)AssessmentListView.SelectedItem;
-            string[] rawFilter = File.ReadAllLines(Definitions.FeaturedDataEachAssessmentPath);
-            string[][] dataFilter = new string[rawFilter.Length][];
+
+            string[] rawFilter = null;
+            string[][] dataFilter = null;
+            try
+            {
+                rawFilter = File.ReadAllLines(Definitions.FeaturedDataEachAssessmentPath);
+                dataFilter = new string[rawFilter.Length][];
+            }
+            catch (Exception exc)
+            {
+                Debug.WriteLine("[Error] fail opening filter" + exc.Message);
+            }
+            
             int i = 0;
             foreach (string rf in rawFilter)
             {
@@ -782,7 +780,7 @@ namespace Auros
             {
                 try
                 {
-                    string[] gloveSensorData = new string[8];
+                    string[] gloveSensorData = null;
                     if (!emergencyTimer.Enabled)
                     {
                         string gloveSensorDataRaw = gloveSerial.ReadPort();
@@ -797,6 +795,7 @@ namespace Auros
                         ///7 - gz
                         /// </summary>
                         gloveSensorData = gloveSensorDataRaw.Split('#');
+                        gloveSensorData[7]= gloveSensorData[7].Split('\r')[0];
                     }
                     else
                     {
@@ -847,7 +846,6 @@ namespace Auros
                                     if (apData == "") Debug.WriteLine("[Error]Fail parsing filter header");
 
                                 }
-                                Debug.WriteLine("[Debug] appended string " + apData);
                                 dataChunk += ("," + apData);
                             }
                             else
@@ -1029,7 +1027,7 @@ namespace Auros
             }
             else if (functionMode == Definitions.FunctionMode.Classify)
             {
-                //TODO add classify-switch
+                //TODO add classify switch
                 UpdateContent(classifyingState);
             }
         }
