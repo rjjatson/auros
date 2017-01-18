@@ -652,11 +652,11 @@ namespace Auros
         }
         private void KeyPressed(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Up)
+            if (e.Key == Key.PageUp)
             {
                 ButtonUp_Click(this, null);
             }
-            else if (e.Key == Key.Down)
+            else if (e.Key == Key.PageDown)
             {
                 ButtonDown_Click(this, null);
             }
@@ -1067,11 +1067,15 @@ namespace Auros
             switch (ts)
             {
                 case Definitions.TrainingState.Video:
+                    AssessmentListView.Visibility = Visibility.Visible;
+                    KinectPlayer.Visibility = Visibility.Hidden;
+                    SmallVideoPlayer.Visibility = Visibility.Collapsed;
+                    BigVideoPlayer.Visibility = Visibility.Visible;
+
                     try
                     {
                         BigVideoPlayer.Source = new Uri("data/video/" + activeAssessment.AssessmentCode.ToString() + ".mp4", UriKind.Relative);
                         BigVideoPlayer.Play();
-                        Debug.WriteLine("[Success]Playing video " + "data/video/" + activeAssessment.AssessmentCode.ToString() + ".mp4", UriKind.Relative);
                     }
                     catch (Exception exc)
                     {
@@ -1079,11 +1083,19 @@ namespace Auros
                     }
                     break;
                 case Definitions.TrainingState.Idle:
+                    KinectPlayer.Visibility = Visibility.Visible;
+                    AssessmentListView.Visibility = Visibility.Hidden;
+                    SmallVideoPlayer.Visibility = Visibility.Visible;
+
+                    //switch video source
+                    SmallVideoPlayer.Source = BigVideoPlayer.Source;
+                    SmallVideoPlayer.Play();
+                    BigVideoPlayer.Source = null;
+                    BigVideoPlayer.Visibility = Visibility.Collapsed;
 
                     break;
                 case Definitions.TrainingState.Recording:
-
-
+                    
                     break;
                 case Definitions.TrainingState.Hold:
 

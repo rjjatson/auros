@@ -57,8 +57,8 @@
                 </Grid.RowDefinitions>                
                 <Grid x:Name="DisplayGrid" Grid.Row="0">                    
                     <MediaElement Name="BigVideoPlayer" LoadedBehavior="Manual" MediaEnded="BigVideoPlayer_MediaEnded" />
-                    <MediaElement Name="SmallVideoPlayer" Width="240" Height="135" VerticalAlignment="Bottom" HorizontalAlignment="Right" MediaEnded="SmallVideoPlayer_MediaEnded" />
-                    <Viewbox HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                    <MediaElement Name="SmallVideoPlayer" Width="240" Height="135" LoadedBehavior="Manual" VerticalAlignment="Bottom" HorizontalAlignment="Right" MediaEnded="SmallVideoPlayer_MediaEnded" />
+                    <Viewbox Name="KinectPlayer" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
                         <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
                     </Viewbox>
                 </Grid>
