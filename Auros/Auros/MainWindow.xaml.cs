@@ -180,6 +180,8 @@ namespace Auros
         StringBuilder csvHeaderBuilder;
         StringBuilder csvDataBuilder;
         public List<Assessment> assessmentLibrary { get; set; }
+        public object ApplicationDeployment { get; private set; }
+
         Assessment activeAssessment;
 
         /// <summary>
@@ -242,6 +244,18 @@ namespace Auros
             //HACK Emergency Test Here
             emergencyTimer = new System.Timers.Timer(200);
             emergencyTimer.Elapsed += new System.Timers.ElapsedEventHandler(EmergencyLoop);
+
+            try
+            {                
+                //testing media player
+                BigVideoPlayer.Source = new Uri("data/video/U11.mp4", UriKind.Relative);
+                BigVideoPlayer.Play();
+                Debug.WriteLine("[Success]Opening video");
+            }
+            catch(Exception exc)
+            {
+                Debug.WriteLine("[Error]Fail test opening video"+exc.Message);
+            }           
         }
 
         /// <summary>
@@ -251,7 +265,7 @@ namespace Auros
         /// <param name="e"></param>
         private void EmergencyLoop(object sender, ElapsedEventArgs e)
         {
-            //HACK --------- put emergency method here 
+            //HACK Emergency Loop
             Dictionary<JointType, Joint> joints = new Dictionary<JointType, Joint>();
             Array jointIteration = Enum.GetValues(typeof(JointType));
             foreach (var j in jointIteration)
@@ -277,8 +291,8 @@ namespace Auros
         {
             var enabler = emergencyTimer.Enabled;
             emergencyTimer.Enabled = !(emergencyTimer.Enabled);
-            if (enabler) EmergencyLoopButton.Content = "active";
-            if (!enabler) EmergencyLoopButton.Content = "deactive";
+            if (enabler) EmergencyLoopButton.Content = "OFF";
+            if (!enabler) EmergencyLoopButton.Content = "ON";
         }
 
         private void InitView()
@@ -386,7 +400,7 @@ namespace Auros
                     if (!isoStore.DirectoryExists(assDir))
                         isoStore.CreateDirectory(assDir);
                     ass.RawDataPath = assDir;
-                    //TODO count available assessment data for the current user here
+                    //TODO Count available assessment data for the current user here
 
                     foreach (Item itm in ass.AssociatedItemList)
                     {
@@ -394,7 +408,7 @@ namespace Auros
                         if (!isoStore.DirectoryExists(itmDir))
                             isoStore.CreateDirectory(itmDir);
                         itm.PreProcDataPath = itmDir;
-                        //TODO count available preproc item data for the current user here
+                        //TODO Count available preproc item data for the current user here
                     }
                 }
                 Debug.WriteLine("[Success]Initializing folder");
@@ -585,7 +599,7 @@ namespace Auros
                                     Enum.TryParse(activeFilter[0][i], out selJoint);
                                     apData += (fJoints[selJoint].Position.X.ToString() + "*" + fJoints[selJoint].Position.Y.ToString() + "*" + fJoints[selJoint].Position.Z.ToString());
                                     if (apData == "") Debug.WriteLine("[Error]Fail parsing filter header");
-                                    //HACK Kenapa ada joint position yang kosong?                                    
+                                                                    
                                 }
                                 Debug.WriteLine("[Debug] appended string " + apData);
                                 dataChunk += ("," + apData);
@@ -692,8 +706,7 @@ namespace Auros
                         if (body.IsTracked)
                         {
                             this.DrawClippedEdges(body, dc);
-
-                            //TODO ---------Data fetching entry point
+                            
                             IReadOnlyDictionary<JointType, Joint> joints = body.Joints;
                             FetchSensorData(joints);
 
@@ -966,7 +979,7 @@ namespace Auros
 
         private void ButtonUp_Click(object sender, RoutedEventArgs e)
         {
-            //TODO do this whole button click shit
+            //UNDONE do this whole button click shit
             if (functionMode == Definitions.FunctionMode.Training)
             {
                 switch (trainingState)

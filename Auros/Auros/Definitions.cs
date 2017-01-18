@@ -27,10 +27,9 @@ namespace Auros
         public static string TempFileName = "tempdata.csv";
 
         public static int[] FMALabel = new int[3] {0,1,2 };
-
-        ///HACK pindah file resource
-        public static string FeaturedDataEachAssessmentPath = "D://Project//AUROS//Desktop/Auros//Auros//data//filter//FeaturedDataEachAssessment.csv";
-        public static string ItemEachAssessmentPath = "D://Project//AUROS//Desktop//Auros//Auros//data//filter//ItemEachAssessment.csv";
+        
+        public static string FeaturedDataEachAssessmentPath = "data/filter/FeaturedDataEachAssessment.csv";
+        public static string ItemEachAssessmentPath = "data/filter/ItemEachAssessment.csv";
 
         /// <summary>
         /// list joints raw data urut dari atas kebawah kiri ke kanan kepala dan alat gerak
@@ -144,7 +143,7 @@ namespace Auros
         };
         public enum ItemCode
         {
-            //TODO explain each item in brief
+            //UNODNE explain each item in brief
             U1A, //BICEPT REFLEX 0/2
             U1B, //TRICEPT REFLEX 0/2
             U2A, //
