@@ -84,7 +84,7 @@
                         <Button Name="ButtonDown" Content="down" Click="ButtonDown_Click"/>
                     </StackPanel>
                 </Grid>
-                <Button Name="EmergencyLoopButton" Content="Emergency Loop" Width="50" Height="50" VerticalAlignment="Top" HorizontalAlignment="Right" Click="PlayClick_Handler"/>
+                <Button Name="EmergencyLoopButton" Content="Dummy" Width="50" Height="50" VerticalAlignment="Top" HorizontalAlignment="Right" Click="PlayClick_Handler"/>
             </Grid>
             
             <!--Grid for report-->

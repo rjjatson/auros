@@ -1,25 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Diagnostics;
 using Microsoft.Kinect;
 using System.ComponentModel;
-using System.Windows.Threading;
 using System.IO;
 using System.IO.IsolatedStorage;
 using System.Timers;
-using System.Threading;
 
 namespace Auros
 {
@@ -209,6 +200,7 @@ namespace Auros
 
         //Emergency Properties
         private readonly System.Timers.Timer emergencyTimer;
+        int frameCount = 0;
         #endregion
 
         public MainWindow()
@@ -245,7 +237,7 @@ namespace Auros
 
             //HACK Emergency Test Here
             emergencyTimer = new System.Timers.Timer(200);
-            emergencyTimer.Elapsed += new System.Timers.ElapsedEventHandler(EmergencyLoop);           
+            emergencyTimer.Elapsed += new System.Timers.ElapsedEventHandler(EmergencyLoop);
         }
 
         #region Emergency Event
@@ -460,7 +452,10 @@ namespace Auros
                             this.DrawClippedEdges(body, dc);
 
                             IReadOnlyDictionary<JointType, Joint> joints = body.Joints;
-                            FetchSensorData(joints);
+
+                            //HACK Adjust data rate
+                            frameCount++;
+                            if(frameCount%2==0) FetchSensorData(joints);
 
                             // convert the joint points to depth (display) space
                             Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
@@ -817,7 +812,7 @@ namespace Auros
                         dataChunk += timerStep.ElapsedMilliseconds.ToString();
                         for (int i = 2; i < activeFilter[1].Length; i++) //cek flag mulai dari setelah time stamp ke kanan
                         {
-                            string apData = "";
+                            string apData = string.Empty;
                             if (activeFilter[1][i] == "1")
                             {
                                 if (activeFilter[0][i] == "Flex" || activeFilter[0][i] == "Force" || activeFilter[0][i] == "Accel" || activeFilter[0][i] == "Gyro")
@@ -831,10 +826,10 @@ namespace Auros
                                             apData = gloveSensorData[1];
                                             break;
                                         case "Accel":
-                                            apData = gloveSensorData[2] + "*" + gloveSensorData[3] + "*" + gloveSensorData[4];
+                                            apData = gloveSensorData[2] + ";" + gloveSensorData[3] + ";" + gloveSensorData[4];
                                             break;
                                         case "Gyro":
-                                            apData = gloveSensorData[5] + "*" + gloveSensorData[6] + "*" + gloveSensorData[7];
+                                            apData = gloveSensorData[5] + ";" + gloveSensorData[6] + ";" + gloveSensorData[7];
                                             break;
                                     }
                                 }
@@ -842,10 +837,9 @@ namespace Auros
                                 {
                                     JointType selJoint;
                                     Enum.TryParse(activeFilter[0][i], out selJoint);
-                                    apData += (fJoints[selJoint].Position.X.ToString() + "*" + fJoints[selJoint].Position.Y.ToString() + "*" + fJoints[selJoint].Position.Z.ToString());
-                                    if (apData == "") Debug.WriteLine("[Error]Fail parsing filter header");
-
-                                }
+                                    apData += (fJoints[selJoint].Position.X.ToString() + ";" + fJoints[selJoint].Position.Y.ToString() + ";" + fJoints[selJoint].Position.Z.ToString());
+                                    
+                                }                                
                                 dataChunk += ("," + apData);
                             }
                             else
@@ -854,7 +848,11 @@ namespace Auros
                             }
                         }
 
-                        csvDataBuilder = new StringBuilder();
+                        //TODO - verify the number of apDataz                        
+                        string[] chunkChecker = dataChunk.Split(',');
+                       
+
+                        csvDataBuilder.Clear();
                         csvDataBuilder.AppendLine(dataChunk);
                         File.AppendAllText(Definitions.TempFileName, csvDataBuilder.ToString());
                         dataChunk = "";
