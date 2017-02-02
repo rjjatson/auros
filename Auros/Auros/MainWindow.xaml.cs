@@ -175,6 +175,7 @@ namespace Auros
         public object ApplicationDeployment { get; private set; }
 
         Assessment activeAssessment;
+        Definitions.AssessSide activeSide; //TODO add side control
 
         /// <summary>
         /// row [0][i] - nama fitur
@@ -218,6 +219,7 @@ namespace Auros
             assessmentLibrary = new List<Assessment>();
             InitAssessmentLibrary();
             activeFilter = new string[2][];
+            activeSide = Definitions.AssessSide.Right;
 
             isoStore = IsolatedStorageFile.GetStore(IsolatedStorageScope.User | IsolatedStorageScope.Domain | IsolatedStorageScope.Assembly, null, null);
             InitFileStorage(Definitions.FunctionMode.Training.ToString());
@@ -405,7 +407,7 @@ namespace Auros
             }
         }
         #endregion
-        
+
         #region Kinect SDK    
 
         /// <summary>
@@ -455,7 +457,7 @@ namespace Auros
 
                             //HACK Adjust data rate
                             frameCount++;
-                            if(frameCount%2==0) FetchSensorData(joints);
+                            if (frameCount % 2 == 0) FetchSensorData(joints);
 
                             // convert the joint points to depth (display) space
                             Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
@@ -704,14 +706,15 @@ namespace Auros
             string[][] dataFilter = null;
             try
             {
-                rawFilter = File.ReadAllLines(Definitions.FeaturedDataEachAssessmentPath);
+                string filterPath = (activeSide == Definitions.AssessSide.Right) ? Definitions.RFeaturedDataEachAssessmentPath : Definitions.LFeaturedDataEachAssessmentPath;
+                rawFilter = File.ReadAllLines(filterPath);
                 dataFilter = new string[rawFilter.Length][];
             }
             catch (Exception exc)
             {
                 Debug.WriteLine("[Error] fail opening filter" + exc.Message);
             }
-            
+
             int i = 0;
             foreach (string rf in rawFilter)
             {
@@ -790,7 +793,7 @@ namespace Auros
                         ///7 - gz
                         /// </summary>
                         gloveSensorData = gloveSensorDataRaw.Split('#');
-                        gloveSensorData[7]= gloveSensorData[7].Split('\r')[0];
+                        gloveSensorData[7] = gloveSensorData[7].Split('\r')[0];
                     }
                     else
                     {
@@ -838,8 +841,8 @@ namespace Auros
                                     JointType selJoint;
                                     Enum.TryParse(activeFilter[0][i], out selJoint);
                                     apData += (fJoints[selJoint].Position.X.ToString() + ";" + fJoints[selJoint].Position.Y.ToString() + ";" + fJoints[selJoint].Position.Z.ToString());
-                                    
-                                }                                
+
+                                }
                                 dataChunk += ("," + apData);
                             }
                             else
@@ -848,9 +851,9 @@ namespace Auros
                             }
                         }
 
-                        //TODO - verify the number of apDataz                        
+                        //TODO verify the number of apDataz                        
                         string[] chunkChecker = dataChunk.Split(',');
-                       
+
 
                         csvDataBuilder.Clear();
                         csvDataBuilder.AppendLine(dataChunk);
@@ -895,7 +898,7 @@ namespace Auros
             }
         }
         #endregion
-        
+
         #region Windows Control
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
@@ -1065,7 +1068,7 @@ namespace Auros
 
         private void UpdateContent(Definitions.TrainingState ts)
         {
-            FuncText.Text = "Tr :"+activeAssessment.AssessmentCode.ToString();
+            FuncText.Text = "Tr :" + activeAssessment.AssessmentCode.ToString();
             StateText.Text = ts.ToString();
             switch (ts)
             {
@@ -1116,21 +1119,83 @@ namespace Auros
                     break;
 
                 case Definitions.TrainingState.Labelling:
-                    //TODO copy data temp ke iso storage
+                    //TODO ------------copy data temp ke iso storage
+
+                    //Counting available file on the directiory
+                    int fileNum = 1;
+                    string isoFileLoc = "Training/Raw/" + activeAssessment.AssessmentCode.ToString() + "/" + activeUser.ToString();
+                    string isoFileConf = isoFileLoc + "/config.txt";
+
+                    try
+                    {
+                        if (isoStore.FileExists(isoFileConf))
+                        {
+                            using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(isoFileConf, FileMode.Open, isoStore))
+                            {
+                                using (StreamReader reader = new StreamReader(isoStream))
+                                {
+                                    string sNM = reader.ReadToEnd().Split('.')[0];
+                                    fileNum = Convert.ToInt32(sNM);
+                                }
+                            }
+                            fileNum++;
+                        }
+                        using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(isoFileConf, FileMode.Create, isoStore))
+                        {
+                            using (StreamWriter writer = new StreamWriter(isoStream))
+                            {
+                                writer.WriteLine(fileNum.ToString()+".");
+                            }
+                        }
+                    }
+                    catch (Exception exc)
+                    {
+                        Debug.WriteLine("[Error] Fail modifying config file on " + isoFileLoc + " > " + exc.Message.ToString());
+                    }
+
+
+                    //generate raw file name
+                    string destinationFileName = fileNum + ".csv";
+
+                    //Copying temp file to raw dictionary
+                    try
+                    {
+                        using (FileStream tempStream = new FileStream("data/tempdata.csv", FileMode.Open))
+                        {
+                            using (StreamReader tempReader = new StreamReader(tempStream))
+                            {
+                                //create file dengan ID trial sekian, jika file sudah ada (angka di config di reset) akan dibuat folder baru
+                                using (IsolatedStorageFileStream destinationStream = new IsolatedStorageFileStream(isoFileLoc + "/" + destinationFileName, FileMode.Create))
+                                {
+                                    using (StreamWriter destinationWriter = new StreamWriter(destinationStream))
+                                    {
+                                        destinationWriter.Write(tempReader.ReadToEnd());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception exc)
+                    {
+                        Debug.WriteLine("[Error] Fail managing config file" + exc.Message);
+                    }
 
                     break;
 
                 case Definitions.TrainingState.Confirmation:
                     //TODO [BIG DEAL] Start thread to preprocess and upload to azure 
+
                     break;
             }
         }
         private void UpdateContent(Definitions.ClassifyingState cs)
         {
-            FuncText.Text = "Cl"+activeAssessment.AssessmentCode.ToString();
+            FuncText.Text = "Cl" + activeAssessment.AssessmentCode.ToString();
             StateText.Text = cs.ToString();
             throw new NotImplementedException();
         }
+
+
         #endregion
     }
 }

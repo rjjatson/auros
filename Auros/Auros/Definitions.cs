@@ -28,7 +28,9 @@ namespace Auros
 
         public static int[] FMALabel = new int[3] {0,1,2 };
         
-        public static string FeaturedDataEachAssessmentPath = "data/filter/FeaturedDataEachAssessment.csv";
+        public static string RFeaturedDataEachAssessmentPath = "data/filter/RFeaturedDataEachAssessment.csv";
+        public static string LFeaturedDataEachAssessmentPath = "data/filter/LFeaturedDataEachAssessment.csv";
+
         public static string ItemEachAssessmentPath = "data/filter/ItemEachAssessment.csv";
 
         /// <summary>
