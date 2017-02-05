@@ -199,9 +199,15 @@ namespace Auros
         bool isRecording;
         bool isTimeStepping;
 
+        //labelling prop
+        bool isLabellingFinish;
+        int[] tempLabel; 
+
         //Emergency Properties
         private readonly System.Timers.Timer emergencyTimer;
         int frameCount = 0;
+        
+
         #endregion
 
         public MainWindow()
@@ -228,6 +234,8 @@ namespace Auros
             timerStep = new Stopwatch();
             isRecording = false;
             isTimeStepping = false;
+
+            isLabellingFinish = false;
 
             InitializeComponent();
 
@@ -456,8 +464,9 @@ namespace Auros
                             IReadOnlyDictionary<JointType, Joint> joints = body.Joints;
 
                             //HACK Adjust data rate
-                            frameCount++;
-                            if (frameCount % 2 == 0) FetchSensorData(joints);
+                            //frameCount++;
+                            //if (frameCount % 2 == 0) 
+                            FetchSensorData(joints);
 
                             // convert the joint points to depth (display) space
                             Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
@@ -1011,7 +1020,8 @@ namespace Auros
                         trainingState = Definitions.TrainingState.Video;
                         break;
                     case Definitions.TrainingState.Recording:
-                        trainingState = Definitions.TrainingState.Idle;
+                        //illegal
+                        //trainingState = Definitions.TrainingState.Idle;
                         break;
                     case Definitions.TrainingState.Hold:
                         trainingState = Definitions.TrainingState.Idle;
@@ -1023,7 +1033,6 @@ namespace Auros
                         trainingState = Definitions.TrainingState.Idle;
                         break;
                 }
-
                 UpdateContent(trainingState);
             }
             else if (functionMode == Definitions.FunctionMode.Classify)
@@ -1051,7 +1060,8 @@ namespace Auros
                         trainingState = Definitions.TrainingState.Labelling;
                         break;
                     case Definitions.TrainingState.Labelling:
-                        trainingState = Definitions.TrainingState.Confirmation;
+                        if (isLabellingFinish)
+                            trainingState = Definitions.TrainingState.Confirmation;
                         break;
                     case Definitions.TrainingState.Confirmation:
                         trainingState = Definitions.TrainingState.Video;
@@ -1116,70 +1126,76 @@ namespace Auros
                 case Definitions.TrainingState.Hold:
                     isRecording = false;
 
+
                     break;
 
                 case Definitions.TrainingState.Labelling:
-                    //TODO ------------copy data temp ke iso storage
 
-                    //Counting available file on the directiory
-                    int fileNum = 1;
-                    string isoFileLoc = "Training/Raw/" + activeAssessment.AssessmentCode.ToString() + "/" + activeUser.ToString();
-                    string isoFileConf = isoFileLoc + "/config.txt";
-
-                    try
+                    
+                    //TODO -----------labelling 
+                    if (isLabellingFinish)
                     {
-                        if (isoStore.FileExists(isoFileConf))
+                        #region copy temp data to raw
+                        //Counting available file on the directiory
+                        int fileNum = 1;
+                        string isoFileLoc = "Training/Raw/" + activeAssessment.AssessmentCode.ToString() + "/" + activeUser.ToString();
+                        string isoFileConf = isoFileLoc + "/config.txt";
+
+                        try
                         {
-                            using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(isoFileConf, FileMode.Open, isoStore))
+                            if (isoStore.FileExists(isoFileConf))
                             {
-                                using (StreamReader reader = new StreamReader(isoStream))
+                                using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(isoFileConf, FileMode.Open, isoStore))
                                 {
-                                    string sNM = reader.ReadToEnd().Split('.')[0];
-                                    fileNum = Convert.ToInt32(sNM);
+                                    using (StreamReader reader = new StreamReader(isoStream))
+                                    {
+                                        string sNM = reader.ReadToEnd().Split('.')[0];
+                                        fileNum = Convert.ToInt32(sNM);
+                                    }
+                                }
+                                fileNum++;
+                            }
+                            using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(isoFileConf, FileMode.Create, isoStore))
+                            {
+                                using (StreamWriter writer = new StreamWriter(isoStream))
+                                {
+                                    writer.WriteLine(fileNum.ToString() + ".");
                                 }
                             }
-                            fileNum++;
                         }
-                        using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(isoFileConf, FileMode.Create, isoStore))
+                        catch (Exception exc)
                         {
-                            using (StreamWriter writer = new StreamWriter(isoStream))
-                            {
-                                writer.WriteLine(fileNum.ToString()+".");
-                            }
+                            Debug.WriteLine("[Error] Fail modifying config file on " + isoFileLoc + " > " + exc.Message.ToString());
                         }
-                    }
-                    catch (Exception exc)
-                    {
-                        Debug.WriteLine("[Error] Fail modifying config file on " + isoFileLoc + " > " + exc.Message.ToString());
-                    }
 
 
-                    //generate raw file name
-                    string destinationFileName = fileNum + ".csv";
+                        //generate raw file name
+                        string destinationFileName = fileNum + ".csv";
 
-                    //Copying temp file to raw dictionary
-                    try
-                    {
-                        using (FileStream tempStream = new FileStream("data/tempdata.csv", FileMode.Open))
+                        //Copying temp file to raw dictionary
+                        try
                         {
-                            using (StreamReader tempReader = new StreamReader(tempStream))
+                            using (FileStream tempStream = new FileStream("data/tempdata.csv", FileMode.Open))
                             {
-                                //create file dengan ID trial sekian, jika file sudah ada (angka di config di reset) akan dibuat folder baru
-                                using (IsolatedStorageFileStream destinationStream = new IsolatedStorageFileStream(isoFileLoc + "/" + destinationFileName, FileMode.Create))
+                                using (StreamReader tempReader = new StreamReader(tempStream))
                                 {
-                                    using (StreamWriter destinationWriter = new StreamWriter(destinationStream))
+                                    //create file dengan ID trial sekian, jika file sudah ada (angka di config di reset) akan dibuat folder baru
+                                    using (IsolatedStorageFileStream destinationStream = new IsolatedStorageFileStream(isoFileLoc + "/" + destinationFileName, FileMode.Create))
                                     {
-                                        destinationWriter.Write(tempReader.ReadToEnd());
+                                        using (StreamWriter destinationWriter = new StreamWriter(destinationStream))
+                                        {
+                                            destinationWriter.Write(tempReader.ReadToEnd());
+                                        }
                                     }
                                 }
                             }
                         }
+                        catch (Exception exc)
+                        {
+                            Debug.WriteLine("[Error] Fail managing config file" + exc.Message);
+                        }
+                        #endregion
                     }
-                    catch (Exception exc)
-                    {
-                        Debug.WriteLine("[Error] Fail managing config file" + exc.Message);
-                    }
-
                     break;
 
                 case Definitions.TrainingState.Confirmation:
@@ -1194,8 +1210,6 @@ namespace Auros
             StateText.Text = cs.ToString();
             throw new NotImplementedException();
         }
-
-
         #endregion
     }
 }
