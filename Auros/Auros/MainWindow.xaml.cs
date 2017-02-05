@@ -201,12 +201,12 @@ namespace Auros
 
         //labelling prop
         bool isLabellingFinish;
-        int[] tempLabel; 
+        int[] tempLabel;
 
         //Emergency Properties
         private readonly System.Timers.Timer emergencyTimer;
         int frameCount = 0;
-        
+
 
         #endregion
 
@@ -651,6 +651,7 @@ namespace Auros
         #region Assessment Object Control
         private void InitAssessmentLibrary()
         {
+            List<Assessment> libraryDeleter = new List<Assessment>();
             try
             {
                 Array AssessmentCodeList = Enum.GetValues(typeof(Definitions.AssessmentCode));
@@ -679,16 +680,36 @@ namespace Auros
                     int j = 0;
                     foreach (string itm in ItemEachAssessmentCodeLine[i].Split(','))
                     {
-                        if (itm.Length == 3 && j != 0)
+                        
+                        if (ItemEachAssessmentCodeLine[i].Split(',')[7] != "exclude")
                         {
-                            Item newItem = new Item();
-                            newItem.ItemCode = (Definitions.ItemCode)Enum.Parse(typeof(Definitions.ItemCode), itm);
-                            ass.AssociatedItemList.Add(newItem);
+                            if (itm.Length == 3 && j != 0)
+                            {
+                                Item newItem = new Item();
+                                newItem.ItemCode = (Definitions.ItemCode)Enum.Parse(typeof(Definitions.ItemCode), itm);
+                                ass.AssociatedItemList.Add(newItem);
+                                ass.isActive = true;
+                            }
+                            j++;
                         }
-                        j++;
+                        else
+                        {
+                            ass.isActive = false;
+                            //delete data accs on library
+                            libraryDeleter.Add(ass);
+                            break;
+                        }
                     }
                     i++;
                 }
+
+                foreach(Assessment dss in libraryDeleter)
+                {
+                    assessmentLibrary.Remove(dss);
+                }
+
+                var aas = assessmentLibrary;
+
                 Debug.WriteLine("[Success]Load Item object to assessment library");
             }
             catch (Exception e)
@@ -1131,7 +1152,7 @@ namespace Auros
 
                 case Definitions.TrainingState.Labelling:
 
-                    
+
                     //TODO -----------labelling 
                     if (isLabellingFinish)
                     {

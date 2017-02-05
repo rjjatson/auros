@@ -16,9 +16,12 @@ namespace Auros
         public string RawDataPath;        
         public int storedRawDataNum;
 
+        public bool isActive;
 
         public Assessment()
         {
+
+            isActive = false;
             AssessmentName = string.Empty;
             AssociatedItemList = new List<Item>();
         }
