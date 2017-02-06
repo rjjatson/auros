@@ -40,22 +40,31 @@
                     <StatusBar FontSize="9" HorizontalAlignment="Stretch" Name="statusBar"  Background="White" Foreground="Gray">
                         <StatusBarItem Content="{Binding StatusText}" />
                     </StatusBar>
-                    
+
                 </StackPanel>
-                
+
             </Grid>
 
             <Grid Grid.Column="1" x:Name="ListGrid" >
-               
-                <ListView Name="AssessmentListView" SelectionChanged="AssessmentListView_SelectionChanged" ItemsSource="{Binding assessmentLibrary}" Background="#FFE4E4E4" PreviewKeyDown="AssessmentListView_PreviewKeyDown">                    
-                    <ListView.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding AssessmentName}"/>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="0.1*"></RowDefinition>
+                        <RowDefinition Height="0.8*"></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Name="selectAssessment" VerticalAlignment="Stretch">
+                        <TextBlock FontSize="16" Text="Assessment Item Selection" HorizontalAlignment="Center" Margin="0,10,0,0" />
+                        <Button Content="Proceed" FontSize="13" Margin="15,0,15,10" Click="selectAssessment_Click"/>
+                    </StackPanel>
 
-                <StackPanel Name="attentionText" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ListView Grid.Row="1" Name="AssessmentListView" SelectionChanged="AssessmentListView_SelectionChanged" VerticalAlignment="Stretch" ItemsSource="{Binding assessmentLibrary}" Background="#FFE4E4E4" PreviewKeyDown="AssessmentListView_PreviewKeyDown">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding AssessmentName}"/>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>       
+                <StackPanel Name="attentionText" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Visible">
                     <TextBlock  FontSize="20" HorizontalAlignment="Center" Foreground="Gray" Visibility="Visible">
                     Please attend the patient
                     </TextBlock>
@@ -63,14 +72,52 @@
                     Application can be operated remotely
                     </TextBlock>
                 </StackPanel>
-                
-                
+
+                <StackPanel Name="confirmationText" VerticalAlignment="Center" HorizontalAlignment="Stretch" Visibility="Hidden">
+                    <TextBlock  FontSize="20" HorizontalAlignment="Center" Foreground="Gray" Visibility="Visible">
+                    Data successfully saved
+                    </TextBlock>
+                    <TextBlock FontSize="15" HorizontalAlignment="Center" Foreground="Gray" Visibility="Visible">                    
+                    It is being preprocessed
+                    </TextBlock>
+                    <Button Content="Continue" FontSize="13" Margin="15,10,15,0" Click="selectAssessment_Click"/>
+                </StackPanel>
+
+                <StackPanel x:Name="labellingPanel" HorizontalAlignment="Stretch" Visibility="Hidden">
+                    <TextBlock FontSize="16" Text="Patient's Performance Rating" HorizontalAlignment="Center" Margin="0,10,0,10" />
+                    <Grid x:Name="labelItem0" Margin="5,0,0,5">
+                        <TextBlock x:Name="labeltext0" FontSize="14" Text="Assessment Item 0" HorizontalAlignment="Left"/>
+                        <ComboBox x:Name="labeValue0" HorizontalAlignment="Right" SelectionChanged="labeValue0_SelectionChanged"></ComboBox>
+                    </Grid>
+                    <Grid x:Name="labelItem1"  Margin="5,0,0,5">
+                        <TextBlock x:Name="labeltext1" FontSize="14" Text="Assessment Item 1" HorizontalAlignment="Left"/>
+                        <ComboBox x:Name="labeValue1" HorizontalAlignment="Right" SelectionChanged="labeValue0_SelectionChanged"></ComboBox>
+                    </Grid>
+                    <Grid x:Name="labelItem2"  Margin="5,0,0,5">
+                        <TextBlock x:Name="labeltext2" FontSize="14" Text="Assessment Item 2" HorizontalAlignment="Left"/>
+                        <ComboBox x:Name="labeValue2" HorizontalAlignment="Right" SelectionChanged="labeValue0_SelectionChanged"></ComboBox>
+                    </Grid>
+                    <Grid x:Name="labelItem3"  Margin="5,0,0,5">
+                        <TextBlock x:Name="labeltext3" FontSize="14" Text="Assessment Item 3" HorizontalAlignment="Left"/>
+                        <ComboBox x:Name="labeValue3" HorizontalAlignment="Right" SelectionChanged="labeValue0_SelectionChanged"></ComboBox>
+                    </Grid>
+                    <Grid x:Name="labelItem4"  Margin="5,0,0,5">
+                        <TextBlock x:Name="labeltext4" FontSize="14" Text="Assessment Item 4" HorizontalAlignment="Left"/>
+                        <ComboBox x:Name="labeValue4" HorizontalAlignment="Right" SelectionChanged="labeValue0_SelectionChanged"></ComboBox>
+                    </Grid>
+                    <Grid x:Name="labelItem5"  Margin="5,0,0,5">
+                        <TextBlock x:Name="labeltext5" FontSize="14" Text="Assessment Item 5" HorizontalAlignment="Left"/>
+                        <ComboBox x:Name="labeValue5" HorizontalAlignment="Right" SelectionChanged="labeValue0_SelectionChanged"></ComboBox>
+                    </Grid>
+                    <Button x:Name="labelSaveButton" Content="Save Score" FontSize="13" Margin="15,0,15,0" Click="selectAssessment_Click"/>
+                </StackPanel>
+
             </Grid>
 
             <!--Grid for training and classifying-->
             <Grid Grid.Column="2" x:Name="ContentGrid" Background="Black">
-                <Grid x:Name="DisplayGrid">                    
-                    <MediaElement Name="BigVideoPlayer" LoadedBehavior="Manual" MediaEnded="BigVideoPlayer_MediaEnded" />                    
+                <Grid x:Name="DisplayGrid">
+                    <MediaElement Name="BigVideoPlayer" LoadedBehavior="Manual" MediaEnded="BigVideoPlayer_MediaEnded" />
                     <Viewbox Name="KinectPlayer" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" >
                         <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
                     </Viewbox>
@@ -78,20 +125,20 @@
                     <StackPanel x:Name="popUpBar" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="AntiqueWhite" >
                         <TextBlock x:Name="popUpText" FontSize="36" Text="Start assessment?"  HorizontalAlignment="Center"/>
                         <TextBlock Text="Press DOWN to Continue Press UP to Back" FontSize="24" HorizontalAlignment="Center"  />
-                    </StackPanel>                    
+                    </StackPanel>
                 </Grid>
                 <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Stretch">
                     <StackPanel Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Bottom">
                         <Button Name="ButtonUp" Content="--up--" Click="ButtonUp_Click" />
                         <Button Name="ButtonDown" Content="down" Click="ButtonDown_Click"/>
                     </StackPanel>
-                    <Button x:Name="selectAssessment" Content="Select Asessment" FontSize="16" Click="selectAssessment_Click"  />                    
+
                 </StackPanel>
-                
+
                 <Button Name="EmergencyLoopButton" Content="Dummy" Width="50" Height="50" VerticalAlignment="Top" HorizontalAlignment="Right" Click="PlayClick_Handler"/>
-                
+
             </Grid>
-            
+
             <!--Grid for report-->
             <Grid Name="ReportGrid" Grid.Column="2">
                 <TextBlock Text="Report will be here"/>
@@ -101,6 +148,6 @@
                 <TextBlock Text="Setting will be here"/>
             </Grid>
         </Grid>
-        
+
     </Grid>
 </Window>

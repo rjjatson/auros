@@ -201,7 +201,9 @@ namespace Auros
 
         //labelling prop
         bool isLabellingFinish;
-        int[] tempLabel;
+        Grid[] labellingGrids;
+        ComboBox[] labellingCombos;
+        TextBlock[] labellingText;
 
         //Emergency Properties
         private readonly System.Timers.Timer emergencyTimer;
@@ -221,11 +223,13 @@ namespace Auros
             csvHeaderBuilder = new StringBuilder();
             csvDataBuilder = new StringBuilder();
 
+            //login emulator
             activeUser = Definitions.UserCode.Therapist;
+            activeSide = Definitions.AssessSide.Right;
+
             assessmentLibrary = new List<Assessment>();
             InitAssessmentLibrary();
             activeFilter = new string[2][];
-            activeSide = Definitions.AssessSide.Right;
 
             isoStore = IsolatedStorageFile.GetStore(IsolatedStorageScope.User | IsolatedStorageScope.Domain | IsolatedStorageScope.Assembly, null, null);
             InitFileStorage(Definitions.FunctionMode.Training.ToString());
@@ -235,8 +239,6 @@ namespace Auros
             isRecording = false;
             isTimeStepping = false;
 
-            isLabellingFinish = false;
-
             InitializeComponent();
 
             functionMode = Definitions.FunctionMode.Training;
@@ -244,6 +246,8 @@ namespace Auros
             classifyingState = Definitions.ClassifyingState.Video;
 
             InitView();
+
+            initLabellingPanel();
 
             //HACK Emergency Test Here
             emergencyTimer = new System.Timers.Timer(200);
@@ -297,9 +301,25 @@ namespace Auros
             functionMode = Definitions.FunctionMode.Training;
 
             popUpBar.Visibility = Visibility.Hidden;
-            
+
             SettingGrid.Visibility = Visibility.Collapsed;
             ReportGrid.Visibility = Visibility.Collapsed;
+        }
+
+        private void initLabellingPanel()
+        {
+            isLabellingFinish = false;
+
+            labellingGrids = new Grid[] { labelItem0, labelItem1, labelItem2, labelItem3, labelItem4, labelItem5 };
+            labellingCombos = new ComboBox[] { labeValue0, labeValue1, labeValue2, labeValue3, labeValue4, labeValue5 };
+            labellingText = new TextBlock[] { labeltext0, labeltext1, labeltext2, labeltext3, labeltext4, labeltext5 };
+
+            foreach (ComboBox cbl in labellingCombos)
+            {
+                cbl.ItemsSource = Definitions.FMALabel;
+            }
+
+            labellingPanel.Visibility = Visibility.Hidden;
         }
 
         private void InitKinect()
@@ -399,13 +419,31 @@ namespace Auros
                     ass.RawDataPath = assDir;
                     //TODO Count available assessment data for the current user here
 
+                    try
+                    {
+                        if (isoStore.FileExists(assDir + "/config.txt"))
+                        {
+                            using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(assDir + "/config.txt", FileMode.Open, isoStore))
+                            {
+                                using (StreamReader reader = new StreamReader(isoStream))
+                                {
+                                    string sNM = reader.ReadToEnd().Split('.')[0];
+                                    ass.storedRawDataNum = Convert.ToInt32(sNM);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.WriteLine("[Error]Cant read config file of >" + e.Message.ToString());
+                    }
+
                     foreach (Item itm in ass.AssociatedItemList)
                     {
                         string itmDir = FirstLevelDir + "/Preproc/" + itm.ItemCode.ToString() + "/" + activeUser.ToString();
                         if (!isoStore.DirectoryExists(itmDir))
                             isoStore.CreateDirectory(itmDir);
                         itm.PreProcDataPath = itmDir;
-                        //TODO Count available preproc item data for the current user here
                     }
                 }
                 Debug.WriteLine("[Success]Initializing folder");
@@ -1065,7 +1103,7 @@ namespace Auros
                     case Definitions.TrainingState.Hold:
                         trainingState = Definitions.TrainingState.Idle;
                         break;
-                    //stop emul at labeling
+                        //stop emul at labeling
                 }
                 if (trainingState != curTrainingState)
                     UpdateContent(trainingState);
@@ -1095,7 +1133,15 @@ namespace Auros
                     case Definitions.TrainingState.Hold:
                         trainingState = Definitions.TrainingState.Labelling;
                         break;
-                    //stop emul at labeling
+                    case Definitions.TrainingState.Labelling:
+                        if (isLabellingFinish)
+                        {
+                            trainingState = Definitions.TrainingState.Confirmation;
+                        }
+                        break;
+                    case Definitions.TrainingState.Confirmation:
+                        trainingState = Definitions.TrainingState.Video;
+                        break;
                 }
                 if (trainingState != curTrainingState)
                     UpdateContent(trainingState);
@@ -1115,7 +1161,10 @@ namespace Auros
                 case Definitions.TrainingState.Video:
                     popUpBar.Visibility = Visibility.Hidden;
                     selectAssessment.Visibility = Visibility.Visible;
+
                     attentionText.Visibility = Visibility.Hidden;
+                    confirmationText.Visibility = Visibility.Hidden;
+
                     AssessmentListView.Visibility = Visibility.Visible;
                     KinectPlayer.Visibility = Visibility.Hidden;
                     SmallVideoPlayer.Visibility = Visibility.Collapsed;
@@ -1172,75 +1221,89 @@ namespace Auros
                 case Definitions.TrainingState.Labelling:
                     attentionText.Visibility = Visibility.Hidden;
                     popUpBar.Visibility = Visibility.Hidden;
+                    labellingPanel.Visibility = Visibility.Visible;
 
-                    //TODO -----------labelling 
-                    if (isLabellingFinish)
+                    foreach (Grid lg in labellingGrids)
                     {
-                        #region copy temp data to raw
-                        //Counting available file on the directiory
-                        int fileNum = 1;
-                        string isoFileLoc = "Training/Raw/" + activeAssessment.AssessmentCode.ToString() + "/" + activeUser.ToString();
-                        string isoFileConf = isoFileLoc + "/config.txt";
-
-                        try
-                        {
-                            if (isoStore.FileExists(isoFileConf))
-                            {
-                                using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(isoFileConf, FileMode.Open, isoStore))
-                                {
-                                    using (StreamReader reader = new StreamReader(isoStream))
-                                    {
-                                        string sNM = reader.ReadToEnd().Split('.')[0];
-                                        fileNum = Convert.ToInt32(sNM);
-                                    }
-                                }
-                                fileNum++;
-                            }
-                            using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(isoFileConf, FileMode.Create, isoStore))
-                            {
-                                using (StreamWriter writer = new StreamWriter(isoStream))
-                                {
-                                    writer.WriteLine(fileNum.ToString() + ".");
-                                }
-                            }
-                        }
-                        catch (Exception exc)
-                        {
-                            Debug.WriteLine("[Error] Fail modifying config file on " + isoFileLoc + " > " + exc.Message.ToString());
-                        }
-
-
-                        //generate raw file name
-                        string destinationFileName = fileNum + ".csv";
-
-                        //Copying temp file to raw dictionary
-                        try
-                        {
-                            using (FileStream tempStream = new FileStream("data/tempdata.csv", FileMode.Open))
-                            {
-                                using (StreamReader tempReader = new StreamReader(tempStream))
-                                {
-                                    //create file dengan ID trial sekian, jika file sudah ada (angka di config di reset) akan dibuat folder baru
-                                    using (IsolatedStorageFileStream destinationStream = new IsolatedStorageFileStream(isoFileLoc + "/" + destinationFileName, FileMode.Create))
-                                    {
-                                        using (StreamWriter destinationWriter = new StreamWriter(destinationStream))
-                                        {
-                                            destinationWriter.Write(tempReader.ReadToEnd());
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        catch (Exception exc)
-                        {
-                            Debug.WriteLine("[Error] Fail managing config file" + exc.Message);
-                        }
-                        #endregion
+                        lg.Visibility = Visibility.Collapsed;
                     }
+                    labelSaveButton.Visibility = Visibility.Hidden;
+
+                    //TODO -------------insert labelling data
+                    int activeItemNums = activeAssessment.AssociatedItemList.Count;
+                    for (int ain = 0; ain < activeItemNums; ain++)
+                    {
+                        labellingGrids[ain].Visibility = Visibility.Visible;
+                        labellingText[ain].Text = activeAssessment.AssociatedItemList[ain].ItemCode.ToString();
+                    }
+
                     break;
 
                 case Definitions.TrainingState.Confirmation:
-                    //TODO [BIG DEAL] Start thread to preprocess and upload to azure 
+                    labellingPanel.Visibility = Visibility.Hidden;
+                    confirmationText.Visibility = Visibility.Visible;
+                    //TODO [BIG DEAL] Start thread to copy to raw, preprocess and upload to azure 
+                    #region copy temp data to raw
+                    //Counting available file on the directiory
+                    int fileNum = 1;
+                    string isoFileLoc = "Training/Raw/" + activeAssessment.AssessmentCode.ToString() + "/" + activeUser.ToString();
+                    string isoFileConf = isoFileLoc + "/config.txt";
+
+                    try
+                    {
+                        if (isoStore.FileExists(isoFileConf))
+                        {
+                            using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(isoFileConf, FileMode.Open, isoStore))
+                            {
+                                using (StreamReader reader = new StreamReader(isoStream))
+                                {
+                                    string sNM = reader.ReadToEnd().Split('.')[0];
+                                    fileNum = Convert.ToInt32(sNM);
+                                }
+                            }
+                            fileNum++;
+                        }
+                        using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(isoFileConf, FileMode.Create, isoStore))
+                        {
+                            using (StreamWriter writer = new StreamWriter(isoStream))
+                            {
+                                writer.WriteLine(fileNum.ToString() + ".");
+                            }
+                        }
+                    }
+                    catch (Exception exc)
+                    {
+                        Debug.WriteLine("[Error] Fail modifying config file on " + isoFileLoc + " > " + exc.Message.ToString());
+                    }
+
+
+                    //generate raw file name
+                    string destinationFileName = fileNum + ".csv";
+
+                    //Copying temp file to raw dictionary
+                    try
+                    {
+                        using (FileStream tempStream = new FileStream("data/tempdata.csv", FileMode.Open))
+                        {
+                            using (StreamReader tempReader = new StreamReader(tempStream))
+                            {
+                                //create file dengan ID trial sekian, jika file sudah ada (angka di config di reset) akan dibuat folder baru
+                                using (IsolatedStorageFileStream destinationStream = new IsolatedStorageFileStream(isoFileLoc + "/" + destinationFileName, FileMode.Create))
+                                {
+                                    using (StreamWriter destinationWriter = new StreamWriter(destinationStream))
+                                    {
+                                        destinationWriter.Write(tempReader.ReadToEnd());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception exc)
+                    {
+                        Debug.WriteLine("[Error] Fail managing config file" + exc.Message);
+                    }
+                    #endregion
+
 
                     break;
             }
@@ -1251,8 +1314,25 @@ namespace Auros
             StateText.Text = cs.ToString();
             throw new NotImplementedException();
         }
+
         #endregion
 
-        
+        private void labeValue0_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            bool dataComplete = true;
+
+            int activeItemNums = activeAssessment.AssociatedItemList.Count;
+            for (int ain = 0; ain < activeItemNums; ain++)
+            {
+                if (labellingCombos[ain].SelectedIndex == -1)
+                {
+                    dataComplete = false;
+                    break;
+                }
+            }
+
+            isLabellingFinish = dataComplete;
+            if (isLabellingFinish) labelSaveButton.Visibility = Visibility.Visible;
+        }
     }
 }

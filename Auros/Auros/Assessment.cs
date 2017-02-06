@@ -12,7 +12,7 @@ namespace Auros
         public string AssessmentName { get; set; }
         public List<Item> AssociatedItemList;
 
-        public string VideoPath;
+        //public string VideoPath;
         public string RawDataPath;        
         public int storedRawDataNum;
 
