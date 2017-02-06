@@ -982,6 +982,23 @@ namespace Auros
         {
             ButtonDown_Click(this, null);
         }
+        private void labeValue0_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            bool dataComplete = true;
+
+            int activeItemNums = activeAssessment.AssociatedItemList.Count;
+            for (int ain = 0; ain < activeItemNums; ain++)
+            {
+                if (labellingCombos[ain].SelectedIndex == -1)
+                {
+                    dataComplete = false;
+                    break;
+                }
+            }
+
+            isLabellingFinish = dataComplete;
+            if (isLabellingFinish) labelSaveButton.Visibility = Visibility.Visible;
+        }
         #endregion
 
         #region Windows Control
@@ -1159,6 +1176,7 @@ namespace Auros
             switch (ts)
             {
                 case Definitions.TrainingState.Video:
+                    #region video state proccess
                     popUpBar.Visibility = Visibility.Hidden;
                     selectAssessment.Visibility = Visibility.Visible;
 
@@ -1179,9 +1197,11 @@ namespace Auros
                     {
                         Debug.WriteLine("[Error] " + exc.Message);
                     }
+                    #endregion
                     break;
 
                 case Definitions.TrainingState.Idle:
+                    #region idle state proccess
                     selectAssessment.Visibility = Visibility.Collapsed;
                     attentionText.Visibility = Visibility.Visible;
                     popUpText.Text = "Ready to start the assessment?";
@@ -1202,23 +1222,27 @@ namespace Auros
                     {
                         Debug.WriteLine("[Error] " + exc.Message);
                     }
+                    #endregion
                     break;
 
                 case Definitions.TrainingState.Recording:
+                    #region recording state proccess
                     popUpBar.Visibility = Visibility.Hidden;
                     isRecording = true;
-
+                    #endregion
                     break;
 
                 case Definitions.TrainingState.Hold:
+                    #region hold state proccess
                     popUpText.Text = "Sure to save this assessment?";
                     popUpBar.Visibility = Visibility.Visible;
                     isRecording = false;
-
+                    #endregion
 
                     break;
 
                 case Definitions.TrainingState.Labelling:
+                    #region labelling state proccess
                     attentionText.Visibility = Visibility.Hidden;
                     popUpBar.Visibility = Visibility.Hidden;
                     labellingPanel.Visibility = Visibility.Visible;
@@ -1229,17 +1253,18 @@ namespace Auros
                     }
                     labelSaveButton.Visibility = Visibility.Hidden;
 
-                    //TODO -------------insert labelling data
+
                     int activeItemNums = activeAssessment.AssociatedItemList.Count;
                     for (int ain = 0; ain < activeItemNums; ain++)
                     {
                         labellingGrids[ain].Visibility = Visibility.Visible;
                         labellingText[ain].Text = activeAssessment.AssociatedItemList[ain].ItemCode.ToString();
                     }
-
+                    #endregion
                     break;
 
                 case Definitions.TrainingState.Confirmation:
+                    #region confirm state proccess
                     labellingPanel.Visibility = Visibility.Hidden;
                     confirmationText.Visibility = Visibility.Visible;
                     //TODO [BIG DEAL] Start thread to copy to raw, preprocess and upload to azure 
@@ -1278,7 +1303,14 @@ namespace Auros
 
 
                     //generate raw file name
-                    string destinationFileName = fileNum + ".csv";
+                    string destinationFileName = fileNum.ToString() + "_" + activeSide.ToString();
+
+                    foreach (ComboBox cb in labellingCombos)
+                    {
+                        if (cb.SelectedIndex != -1) destinationFileName += ("_" + cb.SelectedIndex.ToString());
+                    }
+
+                    destinationFileName += ".csv";
 
                     //Copying temp file to raw dictionary
                     try
@@ -1303,8 +1335,7 @@ namespace Auros
                         Debug.WriteLine("[Error] Fail managing config file" + exc.Message);
                     }
                     #endregion
-
-
+                    #endregion
                     break;
             }
         }
@@ -1317,22 +1348,6 @@ namespace Auros
 
         #endregion
 
-        private void labeValue0_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            bool dataComplete = true;
 
-            int activeItemNums = activeAssessment.AssociatedItemList.Count;
-            for (int ain = 0; ain < activeItemNums; ain++)
-            {
-                if (labellingCombos[ain].SelectedIndex == -1)
-                {
-                    dataComplete = false;
-                    break;
-                }
-            }
-
-            isLabellingFinish = dataComplete;
-            if (isLabellingFinish) labelSaveButton.Visibility = Visibility.Visible;
-        }
     }
 }
