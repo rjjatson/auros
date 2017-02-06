@@ -21,17 +21,17 @@
 
             <Grid Grid.Column="0" x:Name="TabGrid" Background="#FF4B002E">
                 <StackPanel Orientation="Vertical">
-                    <Button Background="Transparent" Click="Train_Click">
-                        <Image Source="data/icon/cloud305.png" ></Image>
+                    <Button Background="Transparent" Click="Train_Click" Height="60" >
+                        <Image Source="data/icon/cloud305.png" Width="40" ></Image>
                     </Button>
-                    <Button Background="Transparent" Click="Score_Click">
-                        <Image Source="data/icon/cloud306.png"></Image>
+                    <Button Background="Transparent" Click="Score_Click" Height="60">
+                        <Image Source="data/icon/cloud306.png" Width="40"></Image>
                     </Button>
-                    <Button Background="Transparent" Click="Report_Click">
-                        <Image Source="data/icon/shared1.png"></Image>
+                    <Button Background="Transparent" Click="Report_Click" Height="60">
+                        <Image Source="data/icon/shared1.png" Width="40"></Image>
                     </Button>
-                    <Button Background="Transparent" Click="Setting_Click">
-                        <Image Source="data/icon/settings49.png"></Image>
+                    <Button Background="Transparent" Click="Setting_Click" Height="60">
+                        <Image Source="data/icon/settings49.png" Width="40"></Image>
                     </Button>
                 </StackPanel>
                 <StackPanel Name="DebugStatusText" VerticalAlignment="Bottom">

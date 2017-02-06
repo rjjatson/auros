@@ -199,6 +199,11 @@ namespace Auros
         bool isRecording;
         bool isTimeStepping;
 
+        /// <summary>
+        /// untuk memotong gerakan berulang dalam sekali assessment
+        /// </summary>
+        int currentTrimmingId;
+
         //labelling prop
         bool isLabellingFinish;
         Grid[] labellingGrids;
@@ -249,7 +254,7 @@ namespace Auros
 
             initLabellingPanel();
 
-            //HACK Emergency Test Here
+            //Emergency Test Here
             emergencyTimer = new System.Timers.Timer(200);
             emergencyTimer.Elapsed += new System.Timers.ElapsedEventHandler(EmergencyLoop);
         }
@@ -262,7 +267,7 @@ namespace Auros
         /// <param name="e"></param>
         private void EmergencyLoop(object sender, ElapsedEventArgs e)
         {
-            //HACK Emergency Loop
+            //Emergency Loop
             Dictionary<JointType, Joint> joints = new Dictionary<JointType, Joint>();
             Array jointIteration = Enum.GetValues(typeof(JointType));
             foreach (var j in jointIteration)
@@ -687,7 +692,7 @@ namespace Auros
         }
         #endregion        
 
-        #region Assessment Object Control
+        #region Data Control
         private void InitAssessmentLibrary()
         {
             List<Assessment> libraryDeleter = new List<Assessment>();
@@ -826,20 +831,7 @@ namespace Auros
             }
             FocusManager.SetFocusedElement(MainGrid, DisplayGrid);
         }
-
-        private void ItemListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-
-        }
-
-        private void ScoreCombobox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-
-        }
-
-        #endregion
-
-        #region Data Control
+        
         private void FetchSensorData(IReadOnlyDictionary<JointType, Joint> fJoints)
         {
             string dataChunk = "";
@@ -905,6 +897,10 @@ namespace Auros
                                             break;
                                     }
                                 }
+                                else if(activeFilter[0][i] =="TrimmingId")
+                                {
+                                    apData = currentTrimmingId.ToString();
+                                }
                                 else
                                 {
                                     JointType selJoint;
@@ -951,6 +947,7 @@ namespace Auros
                 }
             }
         }
+
         private void KeyPressed(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.PageUp)
@@ -1103,7 +1100,6 @@ namespace Auros
         private void ButtonUp_Click(object sender, RoutedEventArgs e)
         {
             var curTrainingState = trainingState;
-            //UNDONE do this whole button click shit
             if (functionMode == Definitions.FunctionMode.Training)
             {
                 switch (trainingState)
@@ -1115,6 +1111,7 @@ namespace Auros
                         trainingState = Definitions.TrainingState.Video;
                         break;
                     case Definitions.TrainingState.Recording:
+                        currentTrimmingId++;
                         //illegal
                         break;
                     case Definitions.TrainingState.Hold:
@@ -1185,6 +1182,8 @@ namespace Auros
 
                     AssessmentListView.Visibility = Visibility.Visible;
                     KinectPlayer.Visibility = Visibility.Hidden;
+
+                    SmallVideoPlayer.Stop();
                     SmallVideoPlayer.Visibility = Visibility.Collapsed;
                     BigVideoPlayer.Visibility = Visibility.Visible;
 
@@ -1246,6 +1245,7 @@ namespace Auros
                     attentionText.Visibility = Visibility.Hidden;
                     popUpBar.Visibility = Visibility.Hidden;
                     labellingPanel.Visibility = Visibility.Visible;
+                    isLabellingFinish = false;
 
                     foreach (Grid lg in labellingGrids)
                     {
@@ -1253,10 +1253,11 @@ namespace Auros
                     }
                     labelSaveButton.Visibility = Visibility.Hidden;
 
-
+                    //reset labelling element
                     int activeItemNums = activeAssessment.AssociatedItemList.Count;
                     for (int ain = 0; ain < activeItemNums; ain++)
                     {
+                        labellingCombos[ain].SelectedIndex = -1;
                         labellingGrids[ain].Visibility = Visibility.Visible;
                         labellingText[ain].Text = activeAssessment.AssociatedItemList[ain].ItemCode.ToString();
                     }
@@ -1266,10 +1267,7 @@ namespace Auros
                 case Definitions.TrainingState.Confirmation:
                     #region confirm state proccess
                     labellingPanel.Visibility = Visibility.Hidden;
-                    confirmationText.Visibility = Visibility.Visible;
-                    //TODO [BIG DEAL] Start thread to copy to raw, preprocess and upload to azure 
-                    #region copy temp data to raw
-                    //Counting available file on the directiory
+                    confirmationText.Visibility = Visibility.Visible;                   
                     int fileNum = 1;
                     string isoFileLoc = "Training/Raw/" + activeAssessment.AssessmentCode.ToString() + "/" + activeUser.ToString();
                     string isoFileConf = isoFileLoc + "/config.txt";
@@ -1335,7 +1333,9 @@ namespace Auros
                         Debug.WriteLine("[Error] Fail managing config file" + exc.Message);
                     }
                     #endregion
-                    #endregion
+
+                    //TODO [BIG DEAL] Start thread to copy to raw, preprocess and upload to azure 
+
                     break;
             }
         }
