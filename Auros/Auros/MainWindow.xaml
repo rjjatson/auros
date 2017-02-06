@@ -132,11 +132,9 @@
                         <Button Name="ButtonUp" Content="--up--" Click="ButtonUp_Click" />
                         <Button Name="ButtonDown" Content="down" Click="ButtonDown_Click"/>
                     </StackPanel>
-
                 </StackPanel>
-
                 <Button Name="EmergencyLoopButton" Content="Dummy" Width="50" Height="50" VerticalAlignment="Top" HorizontalAlignment="Right" Click="PlayClick_Handler"/>
-
+                <TextBlock Name="repetitionText" Text="Repetition 0" FontSize="20" Margin="10" Foreground="White"/>
             </Grid>
 
             <!--Grid for report-->

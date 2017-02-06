@@ -1112,6 +1112,7 @@ namespace Auros
                         break;
                     case Definitions.TrainingState.Recording:
                         currentTrimmingId++;
+                        repetitionText.Text = "Repetition " + currentTrimmingId;
                         //illegal
                         break;
                     case Definitions.TrainingState.Hold:
@@ -1174,6 +1175,8 @@ namespace Auros
             {
                 case Definitions.TrainingState.Video:
                     #region video state proccess
+                    repetitionText.Visibility = Visibility.Hidden;
+
                     popUpBar.Visibility = Visibility.Hidden;
                     selectAssessment.Visibility = Visibility.Visible;
 
@@ -1201,6 +1204,7 @@ namespace Auros
 
                 case Definitions.TrainingState.Idle:
                     #region idle state proccess
+                    repetitionText.Visibility = Visibility.Hidden;
                     selectAssessment.Visibility = Visibility.Collapsed;
                     attentionText.Visibility = Visibility.Visible;
                     popUpText.Text = "Ready to start the assessment?";
@@ -1226,6 +1230,9 @@ namespace Auros
 
                 case Definitions.TrainingState.Recording:
                     #region recording state proccess
+                    repetitionText.Visibility = Visibility.Visible;
+                    currentTrimmingId = 0;
+                    repetitionText.Text = "Repetition " + currentTrimmingId;
                     popUpBar.Visibility = Visibility.Hidden;
                     isRecording = true;
                     #endregion
@@ -1233,7 +1240,8 @@ namespace Auros
 
                 case Definitions.TrainingState.Hold:
                     #region hold state proccess
-                    popUpText.Text = "Sure to save this assessment?";
+                    repetitionText.Visibility = Visibility.Hidden;
+                    popUpText.Text = "Save this assessment session?";
                     popUpBar.Visibility = Visibility.Visible;
                     isRecording = false;
                     #endregion
