@@ -46,45 +46,50 @@
             </Grid>
 
             <Grid Grid.Column="1" x:Name="ListGrid" >
-                <ListView Name="AssessmentListView" SelectionChanged="AssessmentListView_SelectionChanged" ItemsSource="{Binding assessmentLibrary}" Background="#FFE4E4E4">
+               
+                <ListView Name="AssessmentListView" SelectionChanged="AssessmentListView_SelectionChanged" ItemsSource="{Binding assessmentLibrary}" Background="#FFE4E4E4" PreviewKeyDown="AssessmentListView_PreviewKeyDown">                    
                     <ListView.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding AssessmentName}"/>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
+
+                <StackPanel Name="attentionText" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock  FontSize="20" HorizontalAlignment="Center" Foreground="Gray" Visibility="Visible">
+                    Please attend the patient
+                    </TextBlock>
+                    <TextBlock FontSize="15" HorizontalAlignment="Center" Foreground="Gray" Visibility="Visible">                    
+                    Application can be operated remotely
+                    </TextBlock>
+                </StackPanel>
+                
+                
             </Grid>
 
             <!--Grid for training and classifying-->
-            <Grid Grid.Column="2" x:Name="ContentGrid">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="0.9*"/>
-                    <RowDefinition Height="0.1*"/>                    
-                </Grid.RowDefinitions>                
-                <Grid x:Name="DisplayGrid" Grid.Row="0">                    
-                    <MediaElement Name="BigVideoPlayer" LoadedBehavior="Manual" MediaEnded="BigVideoPlayer_MediaEnded" />
-                    <MediaElement Name="SmallVideoPlayer" Width="240" Height="135" LoadedBehavior="Manual" VerticalAlignment="Bottom" HorizontalAlignment="Right" MediaEnded="SmallVideoPlayer_MediaEnded" />
-                    <Viewbox Name="KinectPlayer" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+            <Grid Grid.Column="2" x:Name="ContentGrid" Background="Black">
+                <Grid x:Name="DisplayGrid">                    
+                    <MediaElement Name="BigVideoPlayer" LoadedBehavior="Manual" MediaEnded="BigVideoPlayer_MediaEnded" />                    
+                    <Viewbox Name="KinectPlayer" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" >
                         <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
                     </Viewbox>
+                    <MediaElement Name="SmallVideoPlayer" Width="320" Height="180" LoadedBehavior="Manual" VerticalAlignment="Bottom" HorizontalAlignment="Right" MediaEnded="SmallVideoPlayer_MediaEnded"/>
+                    <StackPanel x:Name="popUpBar" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="AntiqueWhite" >
+                        <TextBlock x:Name="popUpText" FontSize="36" Text="Start assessment?"  HorizontalAlignment="Center"/>
+                        <TextBlock Text="Press DOWN to Continue Press UP to Back" FontSize="24" HorizontalAlignment="Center"  />
+                    </StackPanel>                    
                 </Grid>
-                <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Name="RibbonInstructionText" Grid.Column="0" Text="Collected Data On This Assessment 4"/>
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Name="ItemToAssessText" Text="Shoulder Flexion"/>
-                        <ComboBox Name="labellingComboBox" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right">
+                <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Stretch">
+                    <StackPanel Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Bottom">
                         <Button Name="ButtonUp" Content="--up--" Click="ButtonUp_Click" />
                         <Button Name="ButtonDown" Content="down" Click="ButtonDown_Click"/>
                     </StackPanel>
-                </Grid>
+                    <Button x:Name="selectAssessment" Content="Select Asessment" FontSize="16" Click="selectAssessment_Click"  />                    
+                </StackPanel>
+                
                 <Button Name="EmergencyLoopButton" Content="Dummy" Width="50" Height="50" VerticalAlignment="Top" HorizontalAlignment="Right" Click="PlayClick_Handler"/>
+                
             </Grid>
             
             <!--Grid for report-->

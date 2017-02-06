@@ -296,7 +296,8 @@ namespace Auros
             activeAssessment = (Assessment)AssessmentListView.SelectedItem;
             functionMode = Definitions.FunctionMode.Training;
 
-            labellingComboBox.ItemsSource = Definitions.FMALabel;
+            popUpBar.Visibility = Visibility.Hidden;
+            
             SettingGrid.Visibility = Visibility.Collapsed;
             ReportGrid.Visibility = Visibility.Collapsed;
         }
@@ -680,7 +681,7 @@ namespace Auros
                     int j = 0;
                     foreach (string itm in ItemEachAssessmentCodeLine[i].Split(','))
                     {
-                        
+
                         if (ItemEachAssessmentCodeLine[i].Split(',')[7] != "exclude")
                         {
                             if (itm.Length == 3 && j != 0)
@@ -703,7 +704,7 @@ namespace Auros
                     i++;
                 }
 
-                foreach(Assessment dss in libraryDeleter)
+                foreach (Assessment dss in libraryDeleter)
                 {
                     assessmentLibrary.Remove(dss);
                 }
@@ -785,7 +786,7 @@ namespace Auros
             {
                 UpdateContent(classifyingState);
             }
-
+            FocusManager.SetFocusedElement(MainGrid, DisplayGrid);
         }
 
         private void ItemListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -927,6 +928,22 @@ namespace Auros
                 isRecording = !isRecording;
             }
         }
+        private void AssessmentListView_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+
+            if (e.Key == Key.PageUp)
+            {
+                ButtonUp_Click(this, null);
+            }
+            else if (e.Key == Key.PageDown)
+            {
+                ButtonDown_Click(this, null);
+            }
+        }
+        private void selectAssessment_Click(object sender, RoutedEventArgs e)
+        {
+            ButtonDown_Click(this, null);
+        }
         #endregion
 
         #region Windows Control
@@ -1030,31 +1047,28 @@ namespace Auros
         #region Finite State
         private void ButtonUp_Click(object sender, RoutedEventArgs e)
         {
+            var curTrainingState = trainingState;
             //UNDONE do this whole button click shit
             if (functionMode == Definitions.FunctionMode.Training)
             {
                 switch (trainingState)
                 {
                     case Definitions.TrainingState.Video:
+                        //illegal
                         break;
                     case Definitions.TrainingState.Idle:
                         trainingState = Definitions.TrainingState.Video;
                         break;
                     case Definitions.TrainingState.Recording:
                         //illegal
-                        //trainingState = Definitions.TrainingState.Idle;
                         break;
                     case Definitions.TrainingState.Hold:
                         trainingState = Definitions.TrainingState.Idle;
                         break;
-                    case Definitions.TrainingState.Labelling:
-                        //ilegal
-                        break;
-                    case Definitions.TrainingState.Confirmation:
-                        trainingState = Definitions.TrainingState.Idle;
-                        break;
+                    //stop emul at labeling
                 }
-                UpdateContent(trainingState);
+                if (trainingState != curTrainingState)
+                    UpdateContent(trainingState);
             }
             else if (functionMode == Definitions.FunctionMode.Classify)
             {
@@ -1064,6 +1078,7 @@ namespace Auros
         }
         private void ButtonDown_Click(object sender, RoutedEventArgs e)
         {
+            var curTrainingState = trainingState;
             if (functionMode == Definitions.FunctionMode.Training)
             {
                 switch (trainingState)
@@ -1080,15 +1095,10 @@ namespace Auros
                     case Definitions.TrainingState.Hold:
                         trainingState = Definitions.TrainingState.Labelling;
                         break;
-                    case Definitions.TrainingState.Labelling:
-                        if (isLabellingFinish)
-                            trainingState = Definitions.TrainingState.Confirmation;
-                        break;
-                    case Definitions.TrainingState.Confirmation:
-                        trainingState = Definitions.TrainingState.Video;
-                        break;
+                    //stop emul at labeling
                 }
-                UpdateContent(trainingState);
+                if (trainingState != curTrainingState)
+                    UpdateContent(trainingState);
             }
             else if (functionMode == Definitions.FunctionMode.Classify)
             {
@@ -1096,7 +1106,6 @@ namespace Auros
                 UpdateContent(classifyingState);
             }
         }
-
         private void UpdateContent(Definitions.TrainingState ts)
         {
             FuncText.Text = "Tr :" + activeAssessment.AssessmentCode.ToString();
@@ -1104,6 +1113,9 @@ namespace Auros
             switch (ts)
             {
                 case Definitions.TrainingState.Video:
+                    popUpBar.Visibility = Visibility.Hidden;
+                    selectAssessment.Visibility = Visibility.Visible;
+                    attentionText.Visibility = Visibility.Hidden;
                     AssessmentListView.Visibility = Visibility.Visible;
                     KinectPlayer.Visibility = Visibility.Hidden;
                     SmallVideoPlayer.Visibility = Visibility.Collapsed;
@@ -1121,6 +1133,10 @@ namespace Auros
                     break;
 
                 case Definitions.TrainingState.Idle:
+                    selectAssessment.Visibility = Visibility.Collapsed;
+                    attentionText.Visibility = Visibility.Visible;
+                    popUpText.Text = "Ready to start the assessment?";
+                    popUpBar.Visibility = Visibility.Visible;
                     isRecording = false;
                     KinectPlayer.Visibility = Visibility.Visible;
                     AssessmentListView.Visibility = Visibility.Hidden;
@@ -1140,18 +1156,22 @@ namespace Auros
                     break;
 
                 case Definitions.TrainingState.Recording:
+                    popUpBar.Visibility = Visibility.Hidden;
                     isRecording = true;
 
                     break;
 
                 case Definitions.TrainingState.Hold:
+                    popUpText.Text = "Sure to save this assessment?";
+                    popUpBar.Visibility = Visibility.Visible;
                     isRecording = false;
 
 
                     break;
 
                 case Definitions.TrainingState.Labelling:
-
+                    attentionText.Visibility = Visibility.Hidden;
+                    popUpBar.Visibility = Visibility.Hidden;
 
                     //TODO -----------labelling 
                     if (isLabellingFinish)
@@ -1232,5 +1252,7 @@ namespace Auros
             throw new NotImplementedException();
         }
         #endregion
+
+        
     }
 }
