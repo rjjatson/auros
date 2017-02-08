@@ -209,6 +209,7 @@ namespace Auros
         Grid[] labellingGrids;
         ComboBox[] labellingCombos;
         TextBlock[] labellingText;
+        string[][] tempScoreLabel;
 
         //Emergency Properties
         private readonly System.Timers.Timer emergencyTimer;
@@ -230,7 +231,7 @@ namespace Auros
 
             //login emulator
             activeUser = Definitions.UserCode.Therapist;
-            activeSide = Definitions.AssessSide.Right;
+            activeSide = Definitions.AssessSide.Left;
 
             assessmentLibrary = new List<Assessment>();
             InitAssessmentLibrary();
@@ -313,6 +314,7 @@ namespace Auros
 
         private void initLabellingPanel()
         {
+
             isLabellingFinish = false;
 
             labellingGrids = new Grid[] { labelItem0, labelItem1, labelItem2, labelItem3, labelItem4, labelItem5 };
@@ -831,7 +833,7 @@ namespace Auros
             }
             FocusManager.SetFocusedElement(MainGrid, DisplayGrid);
         }
-        
+
         private void FetchSensorData(IReadOnlyDictionary<JointType, Joint> fJoints)
         {
             string dataChunk = "";
@@ -842,19 +844,27 @@ namespace Auros
                     string[] gloveSensorData = null;
                     if (!emergencyTimer.Enabled)
                     {
-                        string gloveSensorDataRaw = gloveSerial.ReadPort();
-                        ///<summary>
-                        ///0 - flex
-                        ///1 - force
-                        ///2 - ax
-                        ///3 - ay
-                        ///4 - az
-                        ///5 - gx
-                        ///6 - gy
-                        ///7 - gz
-                        /// </summary>
-                        gloveSensorData = gloveSensorDataRaw.Split('#');
-                        gloveSensorData[7] = gloveSensorData[7].Split('\r')[0];
+                        try
+                        {
+                            string gloveSensorDataRaw = gloveSerial.ReadPort();
+                            ///<summary>
+                            ///0 - flex
+                            ///1 - force
+                            ///2 - ax
+                            ///3 - ay
+                            ///4 - az
+                            ///5 - gx
+                            ///6 - gy
+                            ///7 - gz
+                            /// </summary>
+                            gloveSensorData = gloveSensorDataRaw.Split('#');
+                            gloveSensorData[7] = gloveSensorData[7].Split('\r')[0];
+                        }
+                        catch (Exception exc)
+                        {
+                            Debug.WriteLine("[Error] data glove unavailable >" + exc.Message);
+
+                        }
                     }
                     else
                     {
@@ -897,7 +907,7 @@ namespace Auros
                                             break;
                                     }
                                 }
-                                else if(activeFilter[0][i] =="TrimmingId")
+                                else if (activeFilter[0][i] == "TrimmingId")
                                 {
                                     apData = currentTrimmingId.ToString();
                                 }
@@ -919,16 +929,11 @@ namespace Auros
                         //TODO verify the number of apDataz                        
                         string[] chunkChecker = dataChunk.Split(',');
 
-
                         csvDataBuilder.Clear();
                         csvDataBuilder.AppendLine(dataChunk);
                         File.AppendAllText(Definitions.TempFileName, csvDataBuilder.ToString());
                         dataChunk = "";
                         //Debug.WriteLine("[Success]Writing CSV file");
-                    }
-                    else
-                    {
-                        Debug.WriteLine("[Error]Glove data integrity error");
                     }
                 }
                 catch (Exception e)
@@ -1249,6 +1254,8 @@ namespace Auros
                     break;
 
                 case Definitions.TrainingState.Labelling:
+                    
+
                     #region labelling state proccess
                     attentionText.Visibility = Visibility.Hidden;
                     popUpBar.Visibility = Visibility.Hidden;
@@ -1270,21 +1277,30 @@ namespace Auros
                         labellingText[ain].Text = activeAssessment.AssociatedItemList[ain].ItemCode.ToString();
                     }
                     #endregion
+
+
+                    //HACK : capek 
+                    foreach(ComboBox cb in labellingCombos)
+                    {
+                        cb.SelectedIndex = 1;
+                    }
                     break;
 
                 case Definitions.TrainingState.Confirmation:
-                    #region confirm state proccess
+
                     labellingPanel.Visibility = Visibility.Hidden;
-                    confirmationText.Visibility = Visibility.Visible;                   
+                    confirmationText.Visibility = Visibility.Visible;
+
+                    #region store data to raw trainning
                     int fileNum = 1;
-                    string isoFileLoc = "Training/Raw/" + activeAssessment.AssessmentCode.ToString() + "/" + activeUser.ToString();
-                    string isoFileConf = isoFileLoc + "/config.txt";
+                    string isoFileLocRaw = "Training/Raw/" + activeAssessment.AssessmentCode.ToString() + "/" + activeUser.ToString();
+                    string isoFileConfRaw = isoFileLocRaw + "/config.txt";
 
                     try
                     {
-                        if (isoStore.FileExists(isoFileConf))
+                        if (isoStore.FileExists(isoFileConfRaw))
                         {
-                            using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(isoFileConf, FileMode.Open, isoStore))
+                            using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(isoFileConfRaw, FileMode.Open, isoStore))
                             {
                                 using (StreamReader reader = new StreamReader(isoStream))
                                 {
@@ -1294,7 +1310,7 @@ namespace Auros
                             }
                             fileNum++;
                         }
-                        using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(isoFileConf, FileMode.Create, isoStore))
+                        using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(isoFileConfRaw, FileMode.Create, isoStore))
                         {
                             using (StreamWriter writer = new StreamWriter(isoStream))
                             {
@@ -1304,16 +1320,27 @@ namespace Auros
                     }
                     catch (Exception exc)
                     {
-                        Debug.WriteLine("[Error] Fail modifying config file on " + isoFileLoc + " > " + exc.Message.ToString());
+                        Debug.WriteLine("[Error]Fail modifying config file on " + isoFileLocRaw + " > " + exc.Message.ToString());
                     }
 
 
                     //generate raw file name
                     string destinationFileName = fileNum.ToString() + "_" + activeSide.ToString();
 
+                    int labelIndex = 0;
+                    tempScoreLabel = new string[2][];
+                    tempScoreLabel[0] = new string[activeAssessment.AssociatedItemList.Count];
+                    tempScoreLabel[1] = new string[activeAssessment.AssociatedItemList.Count];
                     foreach (ComboBox cb in labellingCombos)
                     {
-                        if (cb.SelectedIndex != -1) destinationFileName += ("_" + cb.SelectedIndex.ToString());
+                        if (cb.SelectedIndex != -1)
+                        {
+                            destinationFileName += ("_" + cb.SelectedIndex.ToString());
+                            tempScoreLabel[0][labelIndex] = activeAssessment.AssociatedItemList[labelIndex].ItemCode.ToString();
+                            tempScoreLabel[1][labelIndex] = labellingCombos[labelIndex].SelectedValue.ToString();
+
+                        }
+                        labelIndex++;
                     }
 
                     destinationFileName += ".csv";
@@ -1326,7 +1353,7 @@ namespace Auros
                             using (StreamReader tempReader = new StreamReader(tempStream))
                             {
                                 //create file dengan ID trial sekian, jika file sudah ada (angka di config di reset) akan dibuat folder baru
-                                using (IsolatedStorageFileStream destinationStream = new IsolatedStorageFileStream(isoFileLoc + "/" + destinationFileName, FileMode.Create))
+                                using (IsolatedStorageFileStream destinationStream = new IsolatedStorageFileStream(isoFileLocRaw + "/" + destinationFileName, FileMode.Create))
                                 {
                                     using (StreamWriter destinationWriter = new StreamWriter(destinationStream))
                                     {
@@ -1342,7 +1369,104 @@ namespace Auros
                     }
                     #endregion
 
-                    //TODO [BIG DEAL] Start thread to copy to raw, preprocess and upload to azure 
+                    #region load data from raw trainning
+                    string rawPath = isoFileLocRaw + "/" + destinationFileName;
+                    string[][] rawData = null;
+                    string[][] preprocData = null;
+                    if (isoStore.FileExists(rawPath))
+                    {
+                        try
+                        {
+                            using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(rawPath, FileMode.Open, isoStore))
+                            {
+                                using (StreamReader reader = new StreamReader(isoStream))
+                                {
+                                    string[] rd = reader.ReadToEnd().Split('\n');
+                                    rawData = new string[rd.Length - 1][];
+
+                                    int i = 0;
+                                    foreach (string sd in rd)
+                                    {
+                                        if (i == rd.Length - 1) break; //exclude last line of raw file
+                                        rawData[i] = (sd.Split('\r')[0]).Split(',');
+                                        i++;
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception exc)
+                        {
+                            Debug.WriteLine("[Error]Fail loading raw data >" + exc.Message);
+                        }
+
+                    }
+                    #endregion
+
+                    #region save data to preproc
+                    foreach (Item assItem in activeAssessment.AssociatedItemList)
+                    {
+                        //HACK Only save destinated item
+                        switch (assItem.ItemCode)
+                        {
+                            case Definitions.ItemCode.U2A:
+                            case Definitions.ItemCode.U3B:
+                            case Definitions.ItemCode.U4C:
+                            case Definitions.ItemCode.U5B:
+                            case Definitions.ItemCode.U7B:
+                            case Definitions.ItemCode.U8B:
+                            case Definitions.ItemCode.U8C:
+                                try
+                                {
+                                    Preprocessor preprocessor = new Auros.Preprocessor();
+                                    preprocData = preprocessor.Preprocess(rawData, activeAssessment, activeSide, assItem);
+
+                                    //generate raw file name pake filenum dilabelling
+                                    //iterate through old file name
+                                    int itemSearchIndex = 0;
+                                    foreach (string tLabel in tempScoreLabel[0])
+                                    {
+                                        if (tLabel == assItem.ItemCode.ToString())
+                                        {
+                                            break;
+                                        }
+                                        itemSearchIndex++;
+                                    }
+
+                                    destinationFileName ="Training/Preproc/"+assItem.ItemCode.ToString()+"/"+activeUser.ToString()+"/"+ fileNum.ToString() + "_" + activeSide.ToString() +"_"+ tempScoreLabel[1][itemSearchIndex].ToString() + ".csv";
+
+                                    //write array to dir
+                                    using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(destinationFileName, FileMode.Create, isoStore))
+                                    {
+                                        using (StreamWriter writer = new StreamWriter(isoStream))
+                                        {
+                                            foreach (string[] line in preprocData)
+                                            {
+                                                string lineChunk = string.Empty;
+                                                foreach (string l in line)
+                                                {
+                                                    if (lineChunk != string.Empty) lineChunk += ",";
+                                                    lineChunk += l;
+                                                }
+                                                writer.WriteLine(lineChunk);
+                                            }
+                                        }
+                                    }
+
+                                    //save data
+                                }
+                                catch (Exception exc)
+                                {
+                                    Debug.WriteLine("[Error]Fail writing to preproc dir >" + exc.Message);
+                                }
+
+                                break;
+                        }
+
+                    }
+                    #endregion
+
+                    //TODO create master data
+
 
                     break;
             }

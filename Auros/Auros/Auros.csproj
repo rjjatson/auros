@@ -95,6 +95,7 @@
     <Compile Include="Definitions.cs" />
     <Compile Include="Item.cs" />
     <Compile Include="JointManager.cs" />
+    <Compile Include="Preprocessor.cs" />
     <Compile Include="SensorData.cs" />
     <Compile Include="Serial.cs" />
     <Page Include="MainWindow.xaml">
