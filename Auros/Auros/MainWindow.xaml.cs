@@ -231,7 +231,7 @@ namespace Auros
 
             //login emulator
             activeUser = Definitions.UserCode.Therapist;
-            activeSide = Definitions.AssessSide.Left;
+            activeSide = Definitions.AssessSide.Right;
 
             assessmentLibrary = new List<Assessment>();
             InitAssessmentLibrary();
@@ -1272,18 +1272,16 @@ namespace Auros
                     int activeItemNums = activeAssessment.AssociatedItemList.Count;
                     for (int ain = 0; ain < activeItemNums; ain++)
                     {
-                        labellingCombos[ain].SelectedIndex = -1;
                         labellingGrids[ain].Visibility = Visibility.Visible;
                         labellingText[ain].Text = activeAssessment.AssociatedItemList[ain].ItemCode.ToString();
                     }
-                    #endregion
 
-
-                    //HACK : capek 
                     foreach(ComboBox cb in labellingCombos)
                     {
-                        cb.SelectedIndex = 1;
+                        cb.SelectedIndex = -1;
                     }
+                    #endregion
+                                        
                     break;
 
                 case Definitions.TrainingState.Confirmation:

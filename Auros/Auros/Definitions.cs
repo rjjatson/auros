@@ -235,5 +235,12 @@ namespace Auros
             Confirmation,
         }
         
+        public enum GloveDataType
+        {
+            Flex,
+            Force,
+            Accel,
+            Gyro
+        }
     }
 }

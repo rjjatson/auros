@@ -124,6 +124,53 @@ namespace Auros
             }
             return pointColumn;
         }
+        private T SearchGloveData<T>(Definitions.GloveDataType dataType, string[][] data)
+        {
+            int searchIndex = 0;
+            Point3D[] pointColumn = new Point3D[data.Length - 1];
+            double[] valueColumn = new double[data.Length - 1];
+            try
+            {
+                foreach (string label in data[0])
+                {
+                    if (label == dataType.ToString())
+                    {
+                        break;
+                    }
+                    searchIndex++;
+                }
+
+                //copy joint data mulai index ke 1
+                for (int i = 1; i < data.Length; i++)
+                {
+                    string[] stringPoint = data[i][searchIndex].Split(';');
+                    if (dataType == Definitions.GloveDataType.Gyro || dataType == Definitions.GloveDataType.Accel)
+                    {
+                        Point3D tempPoint = new Point3D(Convert.ToDouble(stringPoint[0]), Convert.ToDouble(stringPoint[1]), Convert.ToDouble(stringPoint[2]));
+                        pointColumn[i - 1] = tempPoint;
+                    }
+                    else
+                    {
+                        valueColumn[i - 1] = Convert.ToDouble(stringPoint[0]);
+                    }
+                }
+            }
+            catch (Exception exc)
+            {
+                Debug.WriteLine("[Error]Fail searching IMU data column >" + exc.Message);
+            }
+
+            if (dataType == Definitions.GloveDataType.Gyro || dataType == Definitions.GloveDataType.Accel)
+            {
+                return (T)Convert.ChangeType(pointColumn, typeof(T));
+            }
+            else
+            {
+                return (T)Convert.ChangeType(valueColumn, typeof(T));
+            }
+
+        }
+
         #endregion
 
         public String[][] Preprocess(String[][] data, Assessment assess, Definitions.AssessSide side, Item item)
@@ -131,50 +178,122 @@ namespace Auros
             switch (item.ItemCode)
             {
                 case Definitions.ItemCode.U2A:
+                    #region preproc item
                     //load featured joints
-                    Point3D[] spShoulder = SearchJointData(Microsoft.Kinect.JointType.SpineShoulder, data);
-                    Point3D[] shoulder = null;
-                    Point3D[] elbow = null;
-                    double[] elevationAngle;
-                    //assign joint
-                    if (side == Definitions.AssessSide.Left)
                     {
-                        shoulder = SearchJointData(Microsoft.Kinect.JointType.ShoulderLeft, data);
-                        elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowLeft, data);
-                        elevationAngle = AngleFromThreePoints(shoulder, elbow, spShoulder);
+                        Point3D[] spShoulder = SearchJointData(Microsoft.Kinect.JointType.SpineShoulder, data);
+                        Point3D[] shoulder = null;
+                        Point3D[] elbow = null;
+                        double[] elevationAngle;
+                        //assign joint
+                        if (side == Definitions.AssessSide.Left)
+                        {
+                            shoulder = SearchJointData(Microsoft.Kinect.JointType.ShoulderLeft, data);
+                            elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowLeft, data);
+                            elevationAngle = AngleFromThreePoints(shoulder, elbow, spShoulder);
+                        }
+                        else
+                        {
+                            shoulder = SearchJointData(Microsoft.Kinect.JointType.ShoulderRight, data);
+                            elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowRight, data);
+                            elevationAngle = AngleFromThreePoints(shoulder, spShoulder, elbow);
+                        }
+
+                        //build preproc file                        
+                        string[][] buildPreproc = new string[data.Length][];
+
+                        //labelling
+                        buildPreproc[0] = new string[3];
+                        buildPreproc[0][0] = "Time_Stamp";
+                        buildPreproc[0][1] = "ShoulderElevationAngle";
+                        buildPreproc[0][2] = "Trimming_Id";
+
+                        //fill data
+                        for (int i = 0; i < data.Length - 1; i++)
+                        {
+                            buildPreproc[i + 1] = new string[3] { data[i + 1][0], elevationAngle[i].ToString(), data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
+                        }
+                        return buildPreproc;
                     }
-                    else
-                    {
-                        shoulder = SearchJointData(Microsoft.Kinect.JointType.ShoulderRight, data);
-                        elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowRight, data);
-                        elevationAngle = AngleFromThreePoints(shoulder, spShoulder, elbow);
-                    }
-
-                    //build preproc file                        
-                    string[][] buildPreproc = new string[elevationAngle.Length + 1][];
-
-                    //labelling
-                    buildPreproc[0] = new string[3];
-                    buildPreproc[1] = new string[3];
-                    buildPreproc[2] = new string[3];
-
-                    buildPreproc[0][0] = data[0][0];
-                    buildPreproc[0][1] = "ShoulderElevationAngle";
-                    buildPreproc[0][2] = data[0][10];
-
-                    //fill data
-                    for (int i = 0; i < elevationAngle.Length; i++)
-                    {
-                        buildPreproc[i + 1] = new string[3] { data[i + 1][0], elevationAngle[i].ToString(), data[i + 1][10] };
-                    }
-                    return buildPreproc;
-
-
+                #endregion
                 case Definitions.ItemCode.U3B:
-                    break;
+                    #region preproc item
+                    //load featured joints
+                    {
+                        Point3D[] wrist = null;
+                        Point3D[] shoulder = null;
+                        Point3D[] elbow = null;
+                        double[] elbowExtensionAngle;
+                        //assign joint
+                        if (side == Definitions.AssessSide.Left)
+                        {
+                            shoulder = SearchJointData(Microsoft.Kinect.JointType.ShoulderLeft, data);
+                            elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowLeft, data);
+                            wrist = SearchJointData(Microsoft.Kinect.JointType.WristLeft, data);
+                            elbowExtensionAngle = AngleFromThreePoints(elbow, wrist, shoulder);
+                        }
+                        else
+                        {
+                            shoulder = SearchJointData(Microsoft.Kinect.JointType.ShoulderRight, data);
+                            elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowRight, data);
+                            wrist = SearchJointData(Microsoft.Kinect.JointType.WristRight, data);
+                            elbowExtensionAngle = AngleFromThreePoints(elbow, shoulder, wrist);
+                        }
 
+                        //build preproc file                        
+                        string[][] buildPreproc = new string[data.Length][];
+
+                        //labelling
+                        buildPreproc[0] = new string[3];
+                        buildPreproc[0][0] = "Time_Stamp";
+                        buildPreproc[0][1] = "ElbowExtensionAngle";
+                        buildPreproc[0][2] = "TrimmingId";
+
+                        //fill data
+                        for (int i = 0; i < data.Length - 1; i++)
+                        {
+                            buildPreproc[i + 1] = new string[3] { data[i + 1][0], elbowExtensionAngle[i].ToString(), data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
+                        }
+                        return buildPreproc;
+                    }
+                #endregion
                 case Definitions.ItemCode.U4C:
-                    break;
+                    #region preproc item
+                    //load featured joints
+                    {
+                        Point3D[] accelPoint = new Point3D[data.Length - 1];
+                        accelPoint = SearchGloveData<Point3D[]>(Definitions.GloveDataType.Accel, data);
+
+                        //build preproc file                        
+                        string[][] buildPreproc = new string[data.Length][];
+
+                        //labelling
+                        buildPreproc[0] = new string[4];
+
+                        buildPreproc[0][0] = "Time_Stamp";
+                        buildPreproc[0][1] = "AccelX";
+                        buildPreproc[0][2] = "AccelZ";
+                        buildPreproc[0][3] = "TrimmingId";
+
+                        
+
+                        //fill data horizontally
+                        for (int i = 0; i < data.Length - 1; i++)
+                        {
+                            if (side == Definitions.AssessSide.Left)
+                            {
+                                buildPreproc[i + 1] = new string[4] { data[i + 1][0], accelPoint[i].Z.ToString(), accelPoint[i].Y.ToString(), data[i + 1][Array.IndexOf(data[0],"TrimmingId")] };
+                            }
+                            else
+                            {
+                                //reverse y accel value in left hand
+                                buildPreproc[i + 1] = new string[4] { data[i + 1][0], accelPoint[i].Z.ToString(), (-1.0 * accelPoint[i].Y).ToString(), data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
+                            }
+
+                        }
+                        return buildPreproc;
+                    }
+                #endregion
 
                 case Definitions.ItemCode.U5B:
                     break;
