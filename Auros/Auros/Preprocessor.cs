@@ -296,14 +296,42 @@ namespace Auros
                     #region preproc item
                     //load featured joints
                     {
-                        Point3D[] accelPoint = new Point3D[data.Length - 1];
-                        accelPoint = SearchGloveData<Point3D[]>(Definitions.GloveDataType.Accel, data);
+                        //1. accelY
+                        Point3D[] accelPoint = SearchGloveData<Point3D[]>(Definitions.GloveDataType.Accel, data);
+                        double[] accelY = new double[data.Length - 1];
+                        double[] accelZ = new double[data.Length - 1];
+                        int searchIndex = 0;
+                        foreach (Point3D ap in accelPoint)
+                        {
+                            accelY[searchIndex] = ap.Y;
+                            if (side == Definitions.AssessSide.Right) accelY[searchIndex] *= -1.0;
+                            searchIndex++;
+                        }
 
+                        //2. accelX
+                        searchIndex = 0;
+                        foreach (Point3D ap in accelPoint)
+                        {
+                            accelZ[searchIndex] = ap.Z;
+                            searchIndex++;
+                        }
+
+                        //3. gyroX
+                        Point3D[] gyroPoint = SearchGloveData<Point3D[]>(Definitions.GloveDataType.Gyro, data);
+                        double[] gyroX = new double[data.Length - 1];
+                        searchIndex = 0;
+                        foreach (Point3D gp in gyroPoint)
+                        {
+                            gyroX[searchIndex] = gp.X;
+                            if (side == Definitions.AssessSide.Right) gyroX[searchIndex] *= -1.0;
+                            searchIndex++;
+                        }
+
+                        //4. elbow extension
                         Point3D[] wrist = null;
                         Point3D[] shoulder = null;
                         Point3D[] elbow = null;
-                        double[] elbowExtensionAngle = null;
-                        //extracting elbow extension
+                        double[] elbowExtensionAngle;
                         if (side == Definitions.AssessSide.Left)
                         {
                             shoulder = SearchJointData(Microsoft.Kinect.JointType.ShoulderLeft, data);
@@ -317,9 +345,9 @@ namespace Auros
                             elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowRight, data);
                             wrist = SearchJointData(Microsoft.Kinect.JointType.WristRight, data);
                             elbowExtensionAngle = AngleFromThreePoints(elbow, shoulder, wrist, false);
-                        }
+                        }                      
 
-                        //sholder flex angle
+                        //5. Shoulder flexion
                         Point3D[] xProjectedShoulder = new Point3D[data.Length - 1];
                         int copyIndex = 0;
                         foreach (Point3D sh in shoulder)
@@ -341,32 +369,31 @@ namespace Auros
                         string[][] buildPreproc = new string[data.Length][];
 
                         //labelling
-                        buildPreproc[0] = new string[6];
+                        buildPreproc[0] = new string[7];
                         buildPreproc[0][0] = "Time_Stamp";
-                        buildPreproc[0][1] = "AccelZ";
-                        buildPreproc[0][2] = "AccelY";
-                        buildPreproc[0][3] = "ElbowFlexionAngle";
-                        buildPreproc[0][4] = "ShoulderFlexionAngle";
-                        buildPreproc[0][5] = "TrimmingId";
+                        buildPreproc[0][1] = "AccelYArmPronation";
+                        buildPreproc[0][2] = "AccelXArmPronation";
+                        buildPreproc[0][3] = "GyroXArmPronation";
+                        buildPreproc[0][4] = "ElbowExtensionAngle";
+                        buildPreproc[0][5] = "ShoulderFlexionAngle";
+                        buildPreproc[0][6] = "Trimming_Id";
 
-                        //fill data horizontally
+                        //fill data
                         for (int i = 0; i < data.Length - 1; i++)
                         {
-                            if (side == Definitions.AssessSide.Left)
-                            {
-                                buildPreproc[i + 1] = new string[6] { data[i + 1][0], accelPoint[i].Z.ToString(), accelPoint[i].Y.ToString(), elbowExtensionAngle[i].ToString(), shoulderFlexionAngle[i].ToString(), data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
-                            }
-                            else
-                            {
-                                //reverse y accel value in right hand
-                                buildPreproc[i + 1] = new string[6] { data[i + 1][0], accelPoint[i].Z.ToString(), (-1.0 * accelPoint[i].Y).ToString(), elbowExtensionAngle[i].ToString(), shoulderFlexionAngle[i].ToString(), data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
-                            }
-
+                            buildPreproc[i + 1] = new string[7] {
+                                data[i + 1][0],
+                                accelY[i].ToString(),
+                                accelZ[i].ToString(),
+                                gyroX[i].ToString(),
+                                elbowExtensionAngle[i].ToString(),
+                                shoulderFlexionAngle[i].ToString(),
+                                data[i + 1][Array.IndexOf(data[0], "TrimmingId")]
+                            };
                         }
                         return buildPreproc;
                     }
                 #endregion
-
                 case Definitions.ItemCode.U5B:
                     #region preproc item
                     //load featured joints
@@ -483,15 +510,107 @@ namespace Auros
                         return buildPreproc;
                     }
                 #endregion
-
                 case Definitions.ItemCode.U7B:
-                    break;
+                    #region preproc item
+                    //load featured joints
+                    {
+                        //1. accelZ
+                        Point3D[] accelPoint = SearchGloveData<Point3D[]>(Definitions.GloveDataType.Accel, data);
+                        double[] accelZ = new double[data.Length - 1];
+                        int searchIndex = 0;
+                        foreach (Point3D ap in accelPoint)
+                        {
+                            accelZ[searchIndex] = ap.Z;
+                            if (side == Definitions.AssessSide.Right) accelZ[searchIndex] *= -1.0;
+                            searchIndex++;
+                        }
 
+                        //2. flex
+                        double[] flex = SearchGloveData<double[]>(Definitions.GloveDataType.Flex, data);
+
+                        //3. wristflexion
+
+                        Point3D[] hand = null;
+                        Point3D[] wrist = null;
+                        Point3D[] elbow = null;
+                        double[] wristFlexion = null;
+                        //assign joint
+                        if (side == Definitions.AssessSide.Left)
+                        {
+                            wrist = SearchJointData(Microsoft.Kinect.JointType.WristLeft, data);
+                            hand = SearchJointData(Microsoft.Kinect.JointType.HandLeft, data);
+                            elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowLeft, data);
+                        }
+                        else
+                        {
+                            wrist = SearchJointData(Microsoft.Kinect.JointType.WristRight, data);
+                            hand = SearchJointData(Microsoft.Kinect.JointType.HandRight, data);
+                            elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowRight, data);
+                        }
+
+                        wristFlexion = AngleFromThreePoints(wrist, elbow, hand, false);
+
+
+                        //build preproc file                        
+                        string[][] buildPreproc = new string[data.Length][];
+
+                        //labelling
+                        buildPreproc[0] = new string[5];
+                        buildPreproc[0][0] = "Time_Stamp";
+                        buildPreproc[0][1] = "AccelZWrist";
+                        buildPreproc[0][2] = "FlexWrist";
+                        buildPreproc[0][3] = "WristFlexion";
+                        buildPreproc[0][4] = "Trimming_Id";
+
+                        //fill data
+                        for (int i = 0; i < data.Length - 1; i++)
+                        {
+                            buildPreproc[i + 1] = new string[5] {
+                                data[i + 1][0],
+                                accelZ[i].ToString(),
+                                flex[i].ToString(),
+                                wristFlexion.ToString(),
+                                data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
+                        }
+                        return buildPreproc;
+                    }
+                #endregion
                 case Definitions.ItemCode.U8C:
-                    break;
-            }
+                    #region preproc item
+                    //load featured joints
+                    {
+                        
+                        //1. flex
+                        double[] flex = SearchGloveData<double[]>(Definitions.GloveDataType.Flex, data);
 
-            //loop array preproc 
+                        //2. force
+                        double[] force = SearchGloveData<double[]>(Definitions.GloveDataType.Force, data);
+                       
+
+                        //build preproc file                        
+                        string[][] buildPreproc = new string[data.Length][];
+
+                        //labelling
+                        buildPreproc[0] = new string[4];
+                        buildPreproc[0][0] = "Time_Stamp";
+                        buildPreproc[0][1] = "FlexFinger";
+                        buildPreproc[0][2] = "ForcePalm";
+                        buildPreproc[0][3] = "Trimming_Id";
+
+                        //fill data
+                        for (int i = 0; i < data.Length - 1; i++)
+                        {
+                            buildPreproc[i + 1] = new string[4] {
+                                data[i + 1][0],
+                                flex[i].ToString(),
+                                force[i].ToString(),
+                                data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
+                        }
+                        return buildPreproc;
+                    }
+                    #endregion
+            }
+            Debug.WriteLine("[Error] Cant find preprocessor for item >" + item.ItemCode);       
             return null;
         }
     }
