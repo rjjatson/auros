@@ -37,7 +37,7 @@ namespace Auros
         /// <param name="a">titik ujung dengan joint sequence paling dalam, patokan</param>
         /// <param name="b">titik ujung denan joint sequence paling luar</param>
         /// <returns> sudut di titik p , posotif searah SEARAH JARUM JAM DARI DEPAN thumb in</returns>
-        private double AngleFromThreePoints(Point3D p, Point3D a, Point3D b)
+        private double AngleFromThreePoints(Point3D p, Point3D a, Point3D b, bool fullRotation)
         {
             try
             {
@@ -56,11 +56,10 @@ namespace Auros
 
 
                 //standardize the joint angle
-                if (angleDirection < 0)
+                if (fullRotation && angleDirection < 0) //only clip angle if full rotate
                 {
                     angleMagnitude = (2 * Math.PI) + angleDirection * angleMagnitude;
                 }
-
                 return (angleMagnitude / Math.PI) * 180.0;
             }
             catch (Exception exc)
@@ -70,7 +69,7 @@ namespace Auros
             }
         }
 
-        private double[] AngleFromThreePoints(Point3D[] p, Point3D[] a, Point3D[] b)
+        private double[] AngleFromThreePoints(Point3D[] p, Point3D[] a, Point3D[] b, bool fullRotation)
         {
             double[] tempPointCol = new double[p.Length];
             if (p.Length != a.Length || a.Length != b.Length)
@@ -82,7 +81,7 @@ namespace Auros
                 int i = 0;
                 foreach (Point3D pPoint in p)
                 {
-                    tempPointCol[i] = AngleFromThreePoints(p[i], a[i], b[i]);
+                    tempPointCol[i] = AngleFromThreePoints(p[i], a[i], b[i], fullRotation);
                     i++;
                 }
             }
@@ -190,13 +189,13 @@ namespace Auros
                         {
                             shoulder = SearchJointData(Microsoft.Kinect.JointType.ShoulderLeft, data);
                             elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowLeft, data);
-                            elevationAngle = AngleFromThreePoints(shoulder, elbow, spShoulder);
+                            elevationAngle = AngleFromThreePoints(shoulder, elbow, spShoulder, true);
                         }
                         else
                         {
                             shoulder = SearchJointData(Microsoft.Kinect.JointType.ShoulderRight, data);
                             elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowRight, data);
-                            elevationAngle = AngleFromThreePoints(shoulder, spShoulder, elbow);
+                            elevationAngle = AngleFromThreePoints(shoulder, spShoulder, elbow, true);
                         }
 
                         //build preproc file                        
@@ -224,35 +223,70 @@ namespace Auros
                         Point3D[] shoulder = null;
                         Point3D[] elbow = null;
                         double[] elbowExtensionAngle;
-                        //assign joint
+
+                        //extracting elbow extension
                         if (side == Definitions.AssessSide.Left)
                         {
                             shoulder = SearchJointData(Microsoft.Kinect.JointType.ShoulderLeft, data);
                             elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowLeft, data);
                             wrist = SearchJointData(Microsoft.Kinect.JointType.WristLeft, data);
-                            elbowExtensionAngle = AngleFromThreePoints(elbow, wrist, shoulder);
+                            elbowExtensionAngle = AngleFromThreePoints(elbow, wrist, shoulder, false);
                         }
                         else
                         {
                             shoulder = SearchJointData(Microsoft.Kinect.JointType.ShoulderRight, data);
                             elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowRight, data);
                             wrist = SearchJointData(Microsoft.Kinect.JointType.WristRight, data);
-                            elbowExtensionAngle = AngleFromThreePoints(elbow, shoulder, wrist);
+                            elbowExtensionAngle = AngleFromThreePoints(elbow, shoulder, wrist, false);
                         }
+
+                        //extracting trunk flexion
+                        Point3D[] spineShoulder = SearchJointData(Microsoft.Kinect.JointType.SpineShoulder, data);
+                        Point3D[] yProjectedSpineShoulder = new Point3D[data.Length - 1];
+                        int CopyIndex = 0;
+                        foreach (Point3D ss in spineShoulder)
+                        {
+                            yProjectedSpineShoulder[CopyIndex] = new Point3D(ss.X, 0, ss.Z);
+                            CopyIndex++;
+                        }
+                        Point3D[] spineBase = SearchJointData(Microsoft.Kinect.JointType.SpineBase, data);
+                        double[] trunkFlexionAngle = AngleFromThreePoints(spineBase, spineShoulder, yProjectedSpineShoulder, false);
+
+                        //extracting trunk rotation
+                        Point3D[] hipProjectedShoulder = null;
+                        Point3D[] hip = null;
+                        if (side == Definitions.AssessSide.Left)
+                        {
+                            hip = SearchJointData(Microsoft.Kinect.JointType.HipLeft, data);
+
+                        }
+                        else
+                        {
+                            hip = SearchJointData(Microsoft.Kinect.JointType.HipRight, data);
+                        }
+                        CopyIndex = 0;
+                        foreach (Point3D sh in shoulder)
+                        {
+                            hipProjectedShoulder[CopyIndex] = new Point3D(sh.X, hip[CopyIndex].Y, sh.Z);
+                            CopyIndex++;
+                        }
+                        double[] trunkRotationAngle = AngleFromThreePoints(spineBase, hip, hipProjectedShoulder, false);
+
 
                         //build preproc file                        
                         string[][] buildPreproc = new string[data.Length][];
-
                         //labelling
-                        buildPreproc[0] = new string[3];
+                        buildPreproc[0] = new string[5];
                         buildPreproc[0][0] = "Time_Stamp";
                         buildPreproc[0][1] = "ElbowExtensionAngle";
-                        buildPreproc[0][2] = "TrimmingId";
+                        buildPreproc[0][2] = "TrunkFlexionAngle";
+                        buildPreproc[0][3] = "TrunkRotationAngle";
+                        buildPreproc[0][4] = "TrimmingId";
 
                         //fill data
                         for (int i = 0; i < data.Length - 1; i++)
                         {
-                            buildPreproc[i + 1] = new string[3] { data[i + 1][0], elbowExtensionAngle[i].ToString(), data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
+                            buildPreproc[i + 1] = new string[5] { data[i + 1][0], elbowExtensionAngle[i].ToString(), trunkFlexionAngle[i].ToString(), trunkRotationAngle[i].ToString(), data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
                         }
                         return buildPreproc;
                     }
@@ -271,18 +305,18 @@ namespace Auros
                         buildPreproc[0] = new string[4];
 
                         buildPreproc[0][0] = "Time_Stamp";
-                        buildPreproc[0][1] = "AccelX";
-                        buildPreproc[0][2] = "AccelZ";
+                        buildPreproc[0][1] = "AccelZ";
+                        buildPreproc[0][2] = "AccelY";
                         buildPreproc[0][3] = "TrimmingId";
 
-                        
+
 
                         //fill data horizontally
                         for (int i = 0; i < data.Length - 1; i++)
                         {
                             if (side == Definitions.AssessSide.Left)
                             {
-                                buildPreproc[i + 1] = new string[4] { data[i + 1][0], accelPoint[i].Z.ToString(), accelPoint[i].Y.ToString(), data[i + 1][Array.IndexOf(data[0],"TrimmingId")] };
+                                buildPreproc[i + 1] = new string[4] { data[i + 1][0], accelPoint[i].Z.ToString(), accelPoint[i].Y.ToString(), data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
                             }
                             else
                             {
@@ -299,9 +333,6 @@ namespace Auros
                     break;
 
                 case Definitions.ItemCode.U7B:
-                    break;
-
-                case Definitions.ItemCode.U8B:
                     break;
 
                 case Definitions.ItemCode.U8C:

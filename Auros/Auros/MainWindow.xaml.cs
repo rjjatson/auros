@@ -310,6 +310,9 @@ namespace Auros
 
             SettingGrid.Visibility = Visibility.Collapsed;
             ReportGrid.Visibility = Visibility.Collapsed;
+
+            BigVideoPlayer.Volume = 0.0;
+            SmallVideoPlayer.Volume = 0.0;
         }
 
         private void initLabellingPanel()
@@ -1254,7 +1257,7 @@ namespace Auros
                     break;
 
                 case Definitions.TrainingState.Labelling:
-                    
+
 
                     #region labelling state proccess
                     attentionText.Visibility = Visibility.Hidden;
@@ -1276,12 +1279,12 @@ namespace Auros
                         labellingText[ain].Text = activeAssessment.AssociatedItemList[ain].ItemCode.ToString();
                     }
 
-                    foreach(ComboBox cb in labellingCombos)
+                    foreach (ComboBox cb in labellingCombos)
                     {
                         cb.SelectedIndex = -1;
                     }
                     #endregion
-                                        
+
                     break;
 
                 case Definitions.TrainingState.Confirmation:
@@ -1430,7 +1433,7 @@ namespace Auros
                                         itemSearchIndex++;
                                     }
 
-                                    destinationFileName ="Training/Preproc/"+assItem.ItemCode.ToString()+"/"+activeUser.ToString()+"/"+ fileNum.ToString() + "_" + activeSide.ToString() +"_"+ tempScoreLabel[1][itemSearchIndex].ToString() + ".csv";
+                                    destinationFileName = "Training/Preproc/" + assItem.ItemCode.ToString() + "/" + activeUser.ToString() + "/" + fileNum.ToString() + "_" + activeSide.ToString() + "_" + tempScoreLabel[1][itemSearchIndex].ToString() + ".csv";
 
                                     //write array to dir
                                     using (IsolatedStorageFileStream isoStream = new IsolatedStorageFileStream(destinationFileName, FileMode.Create, isoStore))
