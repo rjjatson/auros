@@ -223,7 +223,6 @@ namespace Auros
                         Point3D[] shoulder = null;
                         Point3D[] elbow = null;
                         double[] elbowExtensionAngle;
-
                         //extracting elbow extension
                         if (side == Definitions.AssessSide.Left)
                         {
@@ -240,16 +239,18 @@ namespace Auros
                             elbowExtensionAngle = AngleFromThreePoints(elbow, shoulder, wrist, false);
                         }
 
+
+                        Point3D[] spineBase = SearchJointData(Microsoft.Kinect.JointType.SpineBase, data);
+
                         //extracting trunk flexion
                         Point3D[] spineShoulder = SearchJointData(Microsoft.Kinect.JointType.SpineShoulder, data);
                         Point3D[] yProjectedSpineShoulder = new Point3D[data.Length - 1];
                         int CopyIndex = 0;
                         foreach (Point3D ss in spineShoulder)
                         {
-                            yProjectedSpineShoulder[CopyIndex] = new Point3D(ss.X, 0, ss.Z);
+                            yProjectedSpineShoulder[CopyIndex] = new Point3D(ss.X, ss.Y, spineBase[CopyIndex].Z);
                             CopyIndex++;
                         }
-                        Point3D[] spineBase = SearchJointData(Microsoft.Kinect.JointType.SpineBase, data);
                         double[] trunkFlexionAngle = AngleFromThreePoints(spineBase, spineShoulder, yProjectedSpineShoulder, false);
 
                         //extracting trunk rotation
@@ -298,30 +299,60 @@ namespace Auros
                         Point3D[] accelPoint = new Point3D[data.Length - 1];
                         accelPoint = SearchGloveData<Point3D[]>(Definitions.GloveDataType.Accel, data);
 
+                        Point3D[] wrist = null;
+                        Point3D[] shoulder = null;
+                        Point3D[] elbow = null;
+                        double[] elbowExtensionAngle = null;
+                        //extracting elbow extension
+                        if (side == Definitions.AssessSide.Left)
+                        {
+                            shoulder = SearchJointData(Microsoft.Kinect.JointType.ShoulderLeft, data);
+                            elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowLeft, data);
+                            wrist = SearchJointData(Microsoft.Kinect.JointType.WristLeft, data);
+                            elbowExtensionAngle = AngleFromThreePoints(elbow, wrist, shoulder, false);
+                        }
+                        else
+                        {
+                            shoulder = SearchJointData(Microsoft.Kinect.JointType.ShoulderRight, data);
+                            elbow = SearchJointData(Microsoft.Kinect.JointType.ElbowRight, data);
+                            wrist = SearchJointData(Microsoft.Kinect.JointType.WristRight, data);
+                            elbowExtensionAngle = AngleFromThreePoints(elbow, shoulder, wrist, false);
+                        }
+
+                        //sholder extension angle
+                        Point3D[] xProjectedShoulder = new Point3D[data.Length - 1];
+                        int copyIndex = 0;
+                        foreach (Point3D sh in shoulder)
+                        {
+                            xProjectedShoulder[copyIndex] = new Point3D(sh.X, 0, sh.Z);
+                            copyIndex++;
+                        }
+
+                        double[] shoulderFlexionAngle = AngleFromThreePoints(shoulder, elbow, xProjectedShoulder, false);
+
                         //build preproc file                        
                         string[][] buildPreproc = new string[data.Length][];
 
                         //labelling
-                        buildPreproc[0] = new string[4];
-
+                        buildPreproc[0] = new string[6];
                         buildPreproc[0][0] = "Time_Stamp";
                         buildPreproc[0][1] = "AccelZ";
                         buildPreproc[0][2] = "AccelY";
-                        buildPreproc[0][3] = "TrimmingId";
-
-
+                        buildPreproc[0][3] = "ElbowFlexionAngle";
+                        buildPreproc[0][4] = "ShoulderFlexionAngle";
+                        buildPreproc[0][5] = "TrimmingId";
 
                         //fill data horizontally
                         for (int i = 0; i < data.Length - 1; i++)
                         {
                             if (side == Definitions.AssessSide.Left)
                             {
-                                buildPreproc[i + 1] = new string[4] { data[i + 1][0], accelPoint[i].Z.ToString(), accelPoint[i].Y.ToString(), data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
+                                buildPreproc[i + 1] = new string[6] { data[i + 1][0], accelPoint[i].Z.ToString(), accelPoint[i].Y.ToString(), elbowExtensionAngle[i].ToString(),shoulderFlexionAngle[i].ToString(), data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
                             }
                             else
                             {
                                 //reverse y accel value in left hand
-                                buildPreproc[i + 1] = new string[4] { data[i + 1][0], accelPoint[i].Z.ToString(), (-1.0 * accelPoint[i].Y).ToString(), data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
+                                buildPreproc[i + 1] = new string[6] { data[i + 1][0], accelPoint[i].Z.ToString(), (-1.0 * accelPoint[i].Y).ToString(), elbowExtensionAngle[i].ToString(), shoulderFlexionAngle[i].ToString(),data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
                             }
 
                         }
