@@ -1,7 +1,7 @@
 ﻿#,Time_Stamp,Flex,Force,Accel,Gyro,Head,HandLeft,WristLeft,ElbowLeft,ShoulderLeft,SpineShoulder,ShoulderRight,ElbowRight,WristRight,HandRight,FootLeft,AnkleLeft,KneeLeft,HipLeft,SpineBase,HipRight,KneeRight,AnkleRight,FootRight,TrimmingId
 U11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-U21,1,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,1
-U31,1,0,0,1,1,0,1,1,1,1,1,0,0,0,0,0,0,0,1,1,0,1,0,0,1
+U21,1,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,1
+U31,1,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,1,1,0,1,0,0,1
 U41,1,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,1
 U42,1,0,0,1,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,1
 U43,1,0,0,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,1
