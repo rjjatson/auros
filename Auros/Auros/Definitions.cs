@@ -206,8 +206,10 @@ namespace Auros
         /// </summary>
         public enum UserCode
         {
-            Therapist,
-            PatientA
+            Developer,
+            PakBambang,
+            MasReza,
+            MbaAnggun
         }
 
         /// <summary>

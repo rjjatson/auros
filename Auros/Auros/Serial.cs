@@ -18,7 +18,7 @@ namespace Auros
         {
 
         }
-        public void OpenPort(int comPortNumber)
+        public bool OpenPort(int comPortNumber)
         {
             try
             {
@@ -30,12 +30,13 @@ namespace Auros
                 glovePort.StopBits = Definitions.DataStopBits;
                 glovePort.Handshake = Definitions.DataHandShake;
                 //glovePort.PortName = (Definitions.IsAutoSearchSerialPort) ? ("COM" + comPortNumber.ToString()) : ("COM" + Definitions.PortNumber.ToString());
-                glovePort.PortName = "COM" + Definitions.PortNumber.ToString();
+                glovePort.PortName = "COM" + comPortNumber.ToString();
                 glovePort.ReadTimeout = Definitions.ReadTimeout;
                 glovePort.WriteTimeout = Definitions.ReadTimeout;
 
                 glovePort.Open();
                 Debug.WriteLine("[Success]Serial port oppened");
+                return true;
             }
             catch (Exception e)
             {
@@ -46,6 +47,7 @@ namespace Auros
                     glovePort = null;
                     OpenPort(comPortNumber++);
                 }
+                return false;
             }
 
         }

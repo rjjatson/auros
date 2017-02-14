@@ -213,7 +213,7 @@ namespace Auros
 
         //Emergency Properties
         private readonly System.Timers.Timer emergencyTimer;
-        int frameCount = 0;
+        //int frameCount = 0;
 
 
         #endregion
@@ -223,15 +223,12 @@ namespace Auros
             InitKinect();
 
             ClearElements();
-            gloveSerial = new Serial();
-            gloveSerial.OpenPort(0);
+                        
             jointManager = new JointManager();
             csvHeaderBuilder = new StringBuilder();
             csvDataBuilder = new StringBuilder();
-
-            //login emulator
-            activeUser = Definitions.UserCode.Therapist;
-            activeSide = Definitions.AssessSide.Right;
+            
+            InitLogin();
 
             assessmentLibrary = new List<Assessment>();
             InitAssessmentLibrary();
@@ -246,19 +243,25 @@ namespace Auros
             isTimeStepping = false;
 
             InitializeComponent();
+            
+            InitSerial();
 
             functionMode = Definitions.FunctionMode.Training;
             trainingState = Definitions.TrainingState.Video;
             classifyingState = Definitions.ClassifyingState.Video;
 
             InitView();
-
-            initLabellingPanel();
+            InitLabellingPanel();
 
             //Emergency Test Here
             emergencyTimer = new System.Timers.Timer(200);
             emergencyTimer.Elapsed += new System.Timers.ElapsedEventHandler(EmergencyLoop);
+
         }
+
+       
+
+
 
         #region Emergency Event
         /// <summary>
@@ -299,6 +302,14 @@ namespace Auros
         #endregion
 
         #region Init
+        private void InitSerial()
+        {            
+                gloveSerial = new Serial();
+                bool serialPortOpened = gloveSerial.OpenPort(Definitions.PortNumber);
+                if(serialPortOpened) PortText.Text = "COM" + Definitions.PortNumber.ToString() + " opened";
+            
+        }
+
         private void InitView()
         {
             AssessmentListView.DataContext = this;
@@ -315,7 +326,7 @@ namespace Auros
             SmallVideoPlayer.Volume = 0.0;
         }
 
-        private void initLabellingPanel()
+        private void InitLabellingPanel()
         {
 
             isLabellingFinish = false;
@@ -417,6 +428,11 @@ namespace Auros
             this.DataContext = this;
         }
 
+        private void InitUser()
+        {
+
+        }
+
         private void InitFileStorage(String FirstLevelDir)
         {
             try
@@ -462,6 +478,12 @@ namespace Auros
             {
                 Debug.WriteLine("[Error]Initializing folder >" + e.Message);
             }
+        }
+
+        private void InitLogin()
+        {
+            activeUser = Definitions.UserCode.Developer;
+            activeSide = Definitions.AssessSide.Right;
         }
         #endregion
 
@@ -770,6 +792,21 @@ namespace Auros
 
         private void AssessmentListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            InitTempData();
+            
+            if (functionMode == Definitions.FunctionMode.Training)
+            {
+                UpdateContent(trainingState);
+            }
+            else if (functionMode == Definitions.FunctionMode.Classify)
+            {
+                UpdateContent(classifyingState);
+            }
+            FocusManager.SetFocusedElement(MainGrid, DisplayGrid);
+        }
+
+        private void InitTempData()
+        {
             try
             {
                 File.Delete(Definitions.TempFileName);
@@ -825,21 +862,11 @@ namespace Auros
             {
                 Debug.WriteLine("[Error]Creating Filter and temporary data >" + exc.Message);
             }
-
-            if (functionMode == Definitions.FunctionMode.Training)
-            {
-                UpdateContent(trainingState);
-            }
-            else if (functionMode == Definitions.FunctionMode.Classify)
-            {
-                UpdateContent(classifyingState);
-            }
-            FocusManager.SetFocusedElement(MainGrid, DisplayGrid);
         }
 
         private void FetchSensorData(IReadOnlyDictionary<JointType, Joint> fJoints)
         {
-            string dataChunk = "";
+            string dataChunk = string.Empty;
             if (isRecording)
             {
                 try
@@ -929,14 +956,17 @@ namespace Auros
                             }
                         }
 
-                        //TODO verify the number of apDataz                        
+                        //TODO verify the number of apData                  
                         string[] chunkChecker = dataChunk.Split(',');
-
-                        csvDataBuilder.Clear();
-                        csvDataBuilder.AppendLine(dataChunk);
-                        File.AppendAllText(Definitions.TempFileName, csvDataBuilder.ToString());
-                        dataChunk = "";
-                        //Debug.WriteLine("[Success]Writing CSV file");
+                        {
+                            StringBuilder tempBuilder;
+                            tempBuilder = new StringBuilder();
+                            tempBuilder.Clear();
+                            tempBuilder.AppendLine(dataChunk);
+                            File.AppendAllText(Definitions.TempFileName, tempBuilder.ToString());
+                        }                        
+                        dataChunk = string.Empty;
+                       // Debug.WriteLine("[Success]Writing temp CSV file");
                     }
                 }
                 catch (Exception e)
@@ -991,7 +1021,19 @@ namespace Auros
         {
             bool dataComplete = true;
 
+            
+
             int activeItemNums = activeAssessment.AssociatedItemList.Count;
+
+            if(functionMode==Definitions.FunctionMode.Training)
+            {
+                for (int ain = 0; ain < activeItemNums; ain++)
+                {
+                    labellingCombos[ain].SelectedIndex = labellingCombos[0].SelectedIndex;
+
+                }
+            }           
+
             for (int ain = 0; ain < activeItemNums; ain++)
             {
                 if (labellingCombos[ain].SelectedIndex == -1)
@@ -1212,6 +1254,9 @@ namespace Auros
 
                 case Definitions.TrainingState.Idle:
                     #region idle state proccess
+
+                    InitTempData();
+
                     repetitionText.Visibility = Visibility.Hidden;
                     selectAssessment.Visibility = Visibility.Collapsed;
                     attentionText.Visibility = Visibility.Visible;

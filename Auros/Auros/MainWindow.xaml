@@ -8,11 +8,11 @@
         Title="Automated Stroke Assessment System (AUROS)" Height="600" Width="1280" Loaded="Window_Loaded" Closing="Window_Closing">
 
     <Grid>
-        <Grid x:Name="LoginGrid" Visibility="Collapsed">
-
+        <Grid x:Name="LoginGrid" Visibility="Hidden">
+           
         </Grid>
 
-        <Grid x:Name="MainGrid">
+        <Grid x:Name="MainGrid" Visibility="Visible">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="0.05*"/>
                 <ColumnDefinition Width="0.2*"/>
@@ -35,6 +35,7 @@
                     </Button>
                 </StackPanel>
                 <StackPanel Name="DebugStatusText" VerticalAlignment="Bottom">
+                    <TextBlock Name="PortText" FontSize="9" Text="COMx xx" Background="White" Foreground="Gray" />
                     <TextBlock Name="FuncText" FontSize="9" Text="C" Background="White" Foreground="Gray" />
                     <TextBlock Name="StateText" FontSize="9" Text="Idle" Background="White" Foreground="Gray" />
                     <StatusBar FontSize="9" HorizontalAlignment="Stretch" Name="statusBar"  Background="White" Foreground="Gray">
