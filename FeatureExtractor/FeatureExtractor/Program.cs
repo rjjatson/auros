@@ -27,14 +27,12 @@ namespace FeatureExtractor
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("Cannot open Log.txt for writing");
+                    Console.WriteLine("[Error] Cannot open Log.txt for writing");
                     Console.WriteLine(e.Message);
                     return;
                 }
                 Console.SetOut(writer);
             }
-
-
 
             Init();
 
@@ -65,8 +63,8 @@ namespace FeatureExtractor
                             }
                         }
                         userPath = Directory.GetDirectories(cP + "/");
-                        Console.WriteLine("[Success]Found (" + userPath.Length + ") users on " + cP.ToString());
                         Console.WriteLine();
+                        Console.WriteLine("[Success]Found (" + userPath.Length + ") users on " + cP.ToString());
                     }
                     catch (Exception exc)
                     {
@@ -78,7 +76,6 @@ namespace FeatureExtractor
                     {
                         string[] filePath = Directory.GetFiles(uP + "/");
                         Console.WriteLine("[Success]Found (" + filePath.Length + ") data files on " + uP.ToString());
-                        Console.WriteLine();
                         foreach (string fp in filePath)
                         {
                             //read data
@@ -99,7 +96,40 @@ namespace FeatureExtractor
                                 //TODO preprocess here
 
                                 //Extract here
-                                string[][] ExtractedData = Extract(csvRead, fp.Split('_')[fp.Split('_').Length - 1]);
+                                if (assessmentCode != "U7B")//HACK debug sementara tanpa u7b
+                                {
+                                    string[][] ExtractedData = Extract(csvRead, fp.Split('_')[fp.Split('_').Length - 1]);
+
+                                    string savePath = extractionPath + assessmentCode+".csv";
+                                    StringBuilder csvBuilder = new StringBuilder();
+                                    bool isHeader = File.Exists(savePath);
+                                    foreach (string[] line in ExtractedData)
+                                    {
+                                        if(!isHeader)
+                                        {
+                                            string lineString = string.Empty;
+                                            bool isLabel = true;
+                                            foreach (string col in line)
+                                            {
+                                                if (!isLabel) lineString += ",";
+                                                lineString += col;
+                                                isLabel = false;
+                                            }
+                                            csvBuilder.AppendLine(lineString);
+                                        }
+                                        isHeader=false;
+                                    }
+
+                                    if(File.Exists(savePath))
+                                    {
+                                        File.AppendAllText(savePath, csvBuilder.ToString());
+                                    }
+                                    else
+                                    {
+                                        File.WriteAllText(savePath, csvBuilder.ToString());
+                                    }
+
+                                }
 
                                 //TODO save the result here, check first if extract data exist
 
