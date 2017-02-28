@@ -26,8 +26,8 @@ namespace Auros
 
         public static string TempFileName = "data/tempdata.csv";
 
-        public static int[] FMALabel = new int[3] {0,1,2 };
-        
+        public static int[] FMALabel = new int[3] { 0, 1, 2 };
+
         public static string RFeaturedDataEachAssessmentPath = "data/filter/RFeaturedDataEachAssessment.csv";
         public static string LFeaturedDataEachAssessmentPath = "data/filter/LFeaturedDataEachAssessment.csv";
 
@@ -207,16 +207,21 @@ namespace Auros
         public enum UserCode
         {
             Developer,
-            PakBambang,
-            MasReza,
-            MbaAnggun
+            Therapist,
+            Thoriq,
+            Ajik,
+            Dian,
+            Pleki,
+            Fajri,
+            Hamdan,
+            Dummy
         }
 
         /// <summary>
         /// Direktori level pertama penyimpanan data
         /// current (train, classify)
         /// </summary>
-       
+
 
         public enum TrainingState
         {
@@ -236,7 +241,7 @@ namespace Auros
             Hold,
             Confirmation,
         }
-        
+
         public enum GloveDataType
         {
             Flex,

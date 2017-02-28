@@ -211,6 +211,10 @@ namespace Auros
         TextBlock[] labellingText;
         string[][] tempScoreLabel;
 
+        //body tracking
+        ulong activeBodyIndex;
+        int trackedBodyNum;
+
         //Emergency Properties
         private readonly System.Timers.Timer emergencyTimer;
         //int frameCount = 0;
@@ -223,11 +227,11 @@ namespace Auros
             InitKinect();
 
             ClearElements();
-                        
+
             jointManager = new JointManager();
             csvHeaderBuilder = new StringBuilder();
             csvDataBuilder = new StringBuilder();
-            
+
             InitLogin();
 
             assessmentLibrary = new List<Assessment>();
@@ -243,8 +247,10 @@ namespace Auros
             isTimeStepping = false;
 
             InitializeComponent();
-            
+
             InitSerial();
+
+            trackedBodyNum = 0;
 
             functionMode = Definitions.FunctionMode.Training;
             trainingState = Definitions.TrainingState.Video;
@@ -258,10 +264,6 @@ namespace Auros
             emergencyTimer.Elapsed += new System.Timers.ElapsedEventHandler(EmergencyLoop);
 
         }
-
-       
-
-
 
         #region Emergency Event
         /// <summary>
@@ -303,15 +305,20 @@ namespace Auros
 
         #region Init
         private void InitSerial()
-        {            
-                gloveSerial = new Serial();
-                bool serialPortOpened = gloveSerial.OpenPort(Definitions.PortNumber);
-                if(serialPortOpened) PortText.Text = "COM" + Definitions.PortNumber.ToString() + " opened";
-            
+        {
+            gloveSerial = new Serial();
+            bool serialPortOpened = gloveSerial.OpenPort(Definitions.PortNumber);
+            if (serialPortOpened) PortText.Text = "COM" + Definitions.PortNumber.ToString() + " opened";
+
         }
 
         private void InitView()
         {
+            string[] side = new string[2] { Definitions.AssessSide.Right.ToString(), Definitions.AssessSide.Left.ToString() };
+            SideComboBox.ItemsSource = side;
+
+            //SideComboBox.SelectedItem = side[0];
+
             AssessmentListView.DataContext = this;
             AssessmentListView.SelectedIndex = 0;
             activeAssessment = (Assessment)AssessmentListView.SelectedItem;
@@ -431,6 +438,7 @@ namespace Auros
         private void InitUser()
         {
 
+
         }
 
         private void InitFileStorage(String FirstLevelDir)
@@ -482,8 +490,10 @@ namespace Auros
 
         private void InitLogin()
         {
-            activeUser = Definitions.UserCode.Developer;
+            activeUser = Definitions.UserCode.Ajik;
+            //activeSide = Definitions.AssessSide.Left;
             activeSide = Definitions.AssessSide.Right;
+            activeBodyIndex = 0;
         }
         #endregion
 
@@ -524,43 +534,65 @@ namespace Auros
                     int penIndex = 0;
                     //TODO Clear data buffer, Handle body lebih dari satu
 
+
+                    //Body filter
+                    {
+                        double sagital = 9999.0;
+                        double planar = 9999.0;
+                        foreach (Body body in this.bodies)
+                        {
+                            if (body.IsTracked && Math.Abs(body.Joints[JointType.SpineBase].Position.X) < sagital && Math.Abs(body.Joints[JointType.SpineBase].Position.Z) < planar)
+                            {
+                                sagital = Math.Abs(body.Joints[JointType.SpineBase].Position.X);
+                                activeBodyIndex = body.TrackingId;
+                            }
+                        }
+                    }
+
                     foreach (Body body in this.bodies)
                     {
-                        Pen drawPen = this.bodyColors[penIndex++];
 
-                        if (body.IsTracked)
+                        if (body.TrackingId == activeBodyIndex)
                         {
-                            this.DrawClippedEdges(body, dc);
+                            #region bodyDrawing
+                            Pen drawPen = this.bodyColors[penIndex++];
 
-                            IReadOnlyDictionary<JointType, Joint> joints = body.Joints;
-
-                            //HACK Adjust data rate
-                            //frameCount++;
-                            //if (frameCount % 2 == 0) 
-                            FetchSensorData(joints);
-
-                            // convert the joint points to depth (display) space
-                            Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
-
-                            foreach (JointType jointType in joints.Keys)
+                            if (body.IsTracked)
                             {
-                                // sometimes the depth(Z) of an inferred joint may show as negative
-                                // clamp down to 0.1f to prevent coordinatemapper from returning (-Infinity, -Infinity)
-                                CameraSpacePoint position = joints[jointType].Position;
-                                if (position.Z < 0)
+                                this.DrawClippedEdges(body, dc);
+
+                                IReadOnlyDictionary<JointType, Joint> joints = body.Joints;
+
+                                //HACK Adjust data rate
+                                //frameCount++;
+                                //if (frameCount % 2 == 0) 
+                                FetchSensorData(joints);
+
+                                // convert the joint points to depth (display) space
+                                Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
+
+                                foreach (JointType jointType in joints.Keys)
                                 {
-                                    position.Z = InferredZPositionClamp;
+                                    // sometimes the depth(Z) of an inferred joint may show as negative
+                                    // clamp down to 0.1f to prevent coordinatemapper from returning (-Infinity, -Infinity)
+                                    CameraSpacePoint position = joints[jointType].Position;
+                                    if (position.Z < 0)
+                                    {
+                                        position.Z = InferredZPositionClamp;
+                                    }
+
+                                    DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
+
+                                    jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
                                 }
 
-                                DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
+                                this.DrawBody(joints, jointPoints, dc, drawPen);
 
-                                jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
+                                this.DrawHand(body.HandLeftState, jointPoints[JointType.HandLeft], dc);
+                                this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
                             }
 
-                            this.DrawBody(joints, jointPoints, dc, drawPen);
-
-                            this.DrawHand(body.HandLeftState, jointPoints[JointType.HandLeft], dc);
-                            this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
+                            #endregion
                         }
                     }
 
@@ -793,7 +825,7 @@ namespace Auros
         private void AssessmentListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             InitTempData();
-            
+
             if (functionMode == Definitions.FunctionMode.Training)
             {
                 UpdateContent(trainingState);
@@ -872,7 +904,7 @@ namespace Auros
                 try
                 {
                     string[] gloveSensorData = null;
-                    if (!emergencyTimer.Enabled)
+                    if (!emergencyTimer.Enabled && (activeAssessment.AssessmentCode != Definitions.AssessmentCode.U21 && activeAssessment.AssessmentCode != Definitions.AssessmentCode.U31))
                     {
                         try
                         {
@@ -964,9 +996,9 @@ namespace Auros
                             tempBuilder.Clear();
                             tempBuilder.AppendLine(dataChunk);
                             File.AppendAllText(Definitions.TempFileName, tempBuilder.ToString());
-                        }                        
+                        }
                         dataChunk = string.Empty;
-                       // Debug.WriteLine("[Success]Writing temp CSV file");
+                        // Debug.WriteLine("[Success]Writing temp CSV file");
                     }
                 }
                 catch (Exception e)
@@ -1021,18 +1053,18 @@ namespace Auros
         {
             bool dataComplete = true;
 
-            
+
 
             int activeItemNums = activeAssessment.AssociatedItemList.Count;
 
-            if(functionMode==Definitions.FunctionMode.Training)
+            if (functionMode == Definitions.FunctionMode.Training)
             {
                 for (int ain = 0; ain < activeItemNums; ain++)
                 {
                     labellingCombos[ain].SelectedIndex = labellingCombos[0].SelectedIndex;
 
                 }
-            }           
+            }
 
             for (int ain = 0; ain < activeItemNums; ain++)
             {
@@ -1524,8 +1556,12 @@ namespace Auros
             throw new NotImplementedException();
         }
 
+
         #endregion
 
-
+        private void SideComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            //activeSide = (Definitions.AssessSide)SideComboBox.SelectedIndex;
+        }
     }
 }
