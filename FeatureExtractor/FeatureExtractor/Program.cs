@@ -10,9 +10,33 @@ namespace FeatureExtractor
 {
     class Program
     {
+        public enum Operation { Min, Max, Avg, Var, Jerk, Speed, Accel };
+
         static void Main(string[] args)
         {
-            OpeningText();
+            bool isLog = false;
+            FileStream ostrm = null;
+            StreamWriter writer = null;
+            TextWriter oldOut = Console.Out;
+            if (isLog)
+            {
+                try
+                {
+                    ostrm = new FileStream("./Log.txt", FileMode.OpenOrCreate, FileAccess.Write);
+                    writer = new StreamWriter(ostrm);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Cannot open Log.txt for writing");
+                    Console.WriteLine(e.Message);
+                    return;
+                }
+                Console.SetOut(writer);
+            }
+
+
+
+            Init();
 
             //find root directory
             string[] codePath = null;
@@ -74,11 +98,12 @@ namespace FeatureExtractor
 
                                 //TODO preprocess here
 
-                                //TODO Extract here
-
-                                Extract(csvRead);
+                                //Extract here
+                                string[][] ExtractedData = Extract(csvRead, fp.Split('_')[fp.Split('_').Length - 1]);
 
                                 //TODO save the result here, check first if extract data exist
+
+
                             }
                             catch (Exception exc)
                             {
@@ -95,9 +120,16 @@ namespace FeatureExtractor
                 Console.WriteLine("[Error]Cant find root directory");
             }
 
+            if (isLog)
+            {
+                Console.SetOut(oldOut);
+                writer.Close();
+                ostrm.Close();
+                Console.WriteLine("[Success] Saving Session to Log.txt");
+            }
             Console.ReadLine();
         }
-        public static void OpeningText()
+        public static void Init()
         {
             Console.WriteLine("*AUROS FEATURE EXTRACTOR*");
             Console.WriteLine("Place this file in root directory of trainning or classification");
@@ -106,18 +138,49 @@ namespace FeatureExtractor
         }
 
 
-        public static string[][] Extract(string[][] data)
+        public static string[][] Extract(string[][] data, string labelScore)
         {
-            string[][] extractedData = new string[data.Length][];
+            List<List<string>> extractedData = new List<List<string>>();
+            //TODO insert labeeeel
+
             //iterate trhough feature, index 0 mulai dari sebelah kanan time_stamp
-            for (int featureIndex = 1; featureIndex < data.Length - 1; featureIndex++)
+            for (int featureIndex = 1; featureIndex < data[0].Length - 1; featureIndex++)
             {
                 string[][] selectedData = columnSelector(data, featureIndex);
-                List<string> max = DataMax(selectedData);
-                    //min
+
+                List<string> max = DataOperation(selectedData, Operation.Max);
+                extractedData.Add(max);
+
+                List<string> min = DataOperation(selectedData, Operation.Min);
+                extractedData.Add(min);
+
+                List<string> avg = DataOperation(selectedData, Operation.Avg);
+                extractedData.Add(avg);
+
+                List<string> var = DataOperation(selectedData, Operation.Var);
+                extractedData.Add(var);
+
             }
 
-            return extractedData;
+            //add label
+            List<string> label = new List<string>();
+            label.Add("label");
+            for (int i = 1; i < extractedData[0].Count; i++) label.Add(labelScore.Split('.')[0]);
+            extractedData.Insert(0, label);
+
+
+            string[][] extractedDataString = new string[extractedData[0].Count][];
+
+            for (int i = 0; i < extractedDataString.Length; i++)
+            {
+                extractedDataString[i] = new string[extractedData.Count];
+                for (int j = 0; j < extractedDataString[i].Length; j++)
+                {
+                    extractedDataString[i][j] = extractedData[j][i];
+                }
+            }
+
+            return extractedDataString;
         }
 
         /// <summary>
@@ -147,16 +210,17 @@ namespace FeatureExtractor
             return selectedData;
         }
 
-        #region data - max
         /// <summary>
         /// Mencari nilai maksimal data
         /// </summary>
         /// <param name="data">jagged array 3 indeks 1= timestamp, 2= fitur, 3= trimming id</param>
         /// <returns></returns>
-        public static List<string> DataMax(string[][] data)
+        public static List<string> DataOperation(string[][] data, Operation op)
         {
             List<double> dataBuffer = new List<double>();
-            List<string> dataMaxList = new List<string>();
+            List<string> dataReturn = new List<string>();
+            dataReturn.Add(data[0][1].ToString() + "_" + op.ToString());
+
             try
             {
                 string trimming_id = "0";
@@ -166,7 +230,30 @@ namespace FeatureExtractor
                     {
                         if (d[2] != trimming_id || d == data[data.Length - 1]) //trimming id switch
                         {
-                            dataMaxList.Add(DataMax(dataBuffer).ToString());
+                            switch (op)
+                            {
+                                case Operation.Max:
+                                    dataReturn.Add(DataMax(dataBuffer).ToString());
+                                    break;
+                                case Operation.Min:
+                                    dataReturn.Add(DataMin(dataBuffer).ToString());
+                                    break;
+                                case Operation.Avg:
+                                    dataReturn.Add(DataAvg(dataBuffer).ToString());
+                                    break;
+                                case Operation.Var:
+                                    dataReturn.Add(DataVar(dataBuffer).ToString());
+                                    break;
+                                case Operation.Speed:
+                                    //dataReturn.Add(DataMin(dataBuffer).ToString());
+                                    break;
+                                case Operation.Accel:
+                                    //dataReturn.Add(DataMin(dataBuffer).ToString());
+                                    break;
+                                case Operation.Jerk:
+                                    //dataReturn.Add(DataMin(dataBuffer).ToString());
+                                    break;
+                            }
                             dataBuffer.Clear();
                             trimming_id = d[2];
                         }
@@ -181,7 +268,7 @@ namespace FeatureExtractor
             {
                 Console.WriteLine("[Error]Fail Calculating data max >" + exc.Message.ToString());
             }
-            return dataMaxList;
+            return dataReturn;
         }
         public static double DataMax(List<double> data)
         {
@@ -192,7 +279,37 @@ namespace FeatureExtractor
             }
             return maxData;
         }
-        #endregion
+
+        public static double DataMin(List<double> data)
+        {
+            double minData = 999999999999.0;
+            foreach (double d in data)
+            {
+                if (d < minData) minData = d;
+            }
+            return minData;
+        }
+
+        public static double DataAvg(List<double> data)
+        {
+            double avgData = 0.0;
+            foreach (double d in data)
+            {
+                avgData += d;
+            }
+            return avgData / data.Count();
+        }
+
+        public static double DataVar(List<double> data)
+        {
+            double avgData = DataAvg(data);
+            double varData = 0.0;
+            foreach (double d in data)
+            {
+                varData += Math.Pow(d - avgData, 2);
+            }
+            return varData;
+        }
 
     }
 }
