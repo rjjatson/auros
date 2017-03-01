@@ -302,7 +302,7 @@ namespace FeatureExtractor
         }
         public static double DataMax(List<double> data)
         {
-            double maxData = 0.0;
+            double maxData = data[0];
             foreach (double d in data)
             {
                 if (d > maxData) maxData = d;
@@ -312,7 +312,7 @@ namespace FeatureExtractor
 
         public static double DataMin(List<double> data)
         {
-            double minData = 999999999999.0;
+            double minData = data[0];
             foreach (double d in data)
             {
                 if (d < minData) minData = d;

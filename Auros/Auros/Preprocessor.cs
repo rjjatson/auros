@@ -569,7 +569,7 @@ namespace Auros
                                 data[i + 1][0],
                                 accelZ[i].ToString(),
                                 flex[i].ToString(),
-                                wristFlexion.ToString(),
+                                wristFlexion[i].ToString(),
                                 data[i + 1][Array.IndexOf(data[0], "TrimmingId")] };
                         }
                         return buildPreproc;

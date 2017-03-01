@@ -490,9 +490,9 @@ namespace Auros
 
         private void InitLogin()
         {
-            activeUser = Definitions.UserCode.Ajik;
+            activeUser = Definitions.UserCode.Dummy;
             //activeSide = Definitions.AssessSide.Left;
-            activeSide = Definitions.AssessSide.Right;
+            activeSide = Definitions.AssessSide.Left;
             activeBodyIndex = 0;
         }
         #endregion
