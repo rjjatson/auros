@@ -14,6 +14,8 @@ namespace FeatureExtractor
 
         static void Main(string[] args)
         {
+            FileFixer();
+
             bool isLog = false;
             FileStream ostrm = null;
             StreamWriter writer = null;
@@ -50,7 +52,6 @@ namespace FeatureExtractor
                 {
                     string[] userPath = null;
                     string assessmentCode = cP.Split('/')[cP.Split('/').Length - 1];
-                    #region read user path foreach asessment
                     try
                     {
                         userPath = Directory.GetDirectories(cP + "/");
@@ -70,7 +71,6 @@ namespace FeatureExtractor
                     {
                         Console.WriteLine("[Error]Loading user directory >" + exc.Message.ToString());
                     }
-                    #endregion
                     //find every file
                     foreach (string uP in userPath)
                     {
@@ -100,12 +100,12 @@ namespace FeatureExtractor
                                 {
                                     string[][] ExtractedData = Extract(csvRead, fp.Split('_')[fp.Split('_').Length - 1]);
 
-                                    string savePath = extractionPath + assessmentCode+".csv";
+                                    string savePath = extractionPath + assessmentCode + ".csv";
                                     StringBuilder csvBuilder = new StringBuilder();
                                     bool isHeader = File.Exists(savePath);
                                     foreach (string[] line in ExtractedData)
                                     {
-                                        if(!isHeader)
+                                        if (!isHeader)
                                         {
                                             string lineString = string.Empty;
                                             bool isLabel = true;
@@ -117,10 +117,10 @@ namespace FeatureExtractor
                                             }
                                             csvBuilder.AppendLine(lineString);
                                         }
-                                        isHeader=false;
+                                        isHeader = false;
                                     }
 
-                                    if(File.Exists(savePath))
+                                    if (File.Exists(savePath))
                                     {
                                         File.AppendAllText(savePath, csvBuilder.ToString());
                                     }
@@ -240,11 +240,6 @@ namespace FeatureExtractor
             return selectedData;
         }
 
-        /// <summary>
-        /// Mencari nilai maksimal data
-        /// </summary>
-        /// <param name="data">jagged array 3 indeks 1= timestamp, 2= fitur, 3= trimming id</param>
-        /// <returns></returns>
         public static List<string> DataOperation(string[][] data, Operation op)
         {
             List<double> dataBuffer = new List<double>();
@@ -300,6 +295,8 @@ namespace FeatureExtractor
             }
             return dataReturn;
         }
+
+        #region statistic extractor
         public static double DataMax(List<double> data)
         {
             double maxData = data[0];
@@ -340,6 +337,145 @@ namespace FeatureExtractor
             }
             return varData;
         }
+        #endregion
 
+        public static void FileFixer()
+        {
+            //BUG u78 wrist flexion do not show correct value on preproc
+            //root cause : forget to chirp data array each element
+            // soving, overwrite preproc data
+            Console.WriteLine("Start fixing U7B bug..");
+            string rawFolderPath = "Files/Training/Raw/U72/";
+            string[] userRawDir = Directory.GetDirectories(rawFolderPath);
+            //iterates trhough user files
+            foreach (string rd in userRawDir)
+            {
+                if (rd.Split('/')[rd.Split('/').Length - 1] != "Dummy")
+                {
+                    string[] userRawFile = Directory.GetFiles(rd + "/", "*.csv");
+                    foreach (string rf in userRawFile)
+                    {
+                        string prerpocFolderPath = "Files/Training/Preproc/U7B/" + rf.Split('/')[rf.Split('/').Length - 2] + "/" + rf.Split('/')[rf.Split('/').Length - 1];
+                        string[] line = File.ReadAllLines(rf);
+                        string[][] sourceData = new string[line.Length][];
+
+                        int lineIndex = 0;
+                        Point3D[] hand = new Point3D[line.Length - 1];
+                        Point3D[] wrist = new Point3D[line.Length - 1];
+                        Point3D[] elbow = new Point3D[line.Length - 1];
+                        double[] wristFlexion = new double[line.Length - 1];
+
+                        foreach (string l in line)
+                        {
+                            if (lineIndex != 0)
+                            {
+                                string[] lineData = l.Split(',');
+
+                                string[] wristStr = lineData[5].Split(';');
+                                wrist[lineIndex - 1] = new Point3D(Convert.ToDouble(wristStr[0]), Convert.ToDouble(wristStr[1]), Convert.ToDouble(wristStr[2]));
+
+                                string[] handStr = lineData[4].Split(';');
+                                hand[lineIndex - 1] = new Point3D(Convert.ToDouble(handStr[0]), Convert.ToDouble(handStr[1]), Convert.ToDouble(handStr[2]));
+
+                                string[] elbowStr = lineData[6].Split(';');
+                                elbow[lineIndex - 1] = new Point3D(Convert.ToDouble(elbowStr[0]), Convert.ToDouble(elbowStr[1]), Convert.ToDouble(elbowStr[2]));
+
+                                wristFlexion[lineIndex - 1] = AngleFromThreePoints(wrist[lineIndex - 1], elbow[lineIndex - 1], hand[lineIndex - 1], false);
+
+                            }
+                            lineIndex++;
+                        }
+
+                        line = File.ReadAllLines(prerpocFolderPath);
+                        string[][] destinationData = new string[line.Length][];
+                        lineIndex = 0;
+                        foreach (string l in line)
+                        {
+                            destinationData[lineIndex] = l.Split(',');
+                            if (lineIndex != 0)
+                            {
+                                destinationData[lineIndex][3] = wristFlexion[lineIndex - 1].ToString();
+                            }
+                            lineIndex++;
+                        }
+
+                        StringBuilder prepString = new StringBuilder();
+                        foreach(string[] destLine in destinationData)
+                        {
+                            bool isFirst = true;
+                            string stringLine = string.Empty;
+                            foreach(string destEl in destLine)
+                            {
+                                if (!isFirst) stringLine += ",";
+                                stringLine += destEl;
+                                isFirst = false;
+                            }
+                            prepString.AppendLine(stringLine);
+                        }
+                        File.WriteAllText(prerpocFolderPath,prepString.ToString());
+
+                    }
+                }
+            }
+            Console.WriteLine("Finish fixing U7B bug..");
+        }
+
+        private static double TwoPointDistance(Point3D a, Point3D b)
+        {
+            return Math.Sqrt(Math.Pow(b.X - a.X, 2) + Math.Pow(b.Y - a.Y, 2) + Math.Pow(b.Z - a.Z, 2));
+        }
+
+        private static double AngleFromThreePoints(Point3D p, Point3D a, Point3D b, bool fullRotation)
+        {
+            try
+            {
+                double sideA = TwoPointDistance(a, p);
+                double sideB = TwoPointDistance(b, p);
+
+                Point3D vectorA = new Point3D(a.X - p.X, a.Y - p.Y, a.Z - p.Z);
+                Point3D vectorB = new Point3D(b.X - p.X, b.Y - p.Y, b.Z - p.Z);
+                Point3D normA = new Point3D(vectorA.X / sideA, vectorA.Y / sideA, vectorA.Z / sideA);
+                Point3D normB = new Point3D(vectorB.X / sideB, vectorB.Y / sideB, vectorB.Z / sideB);
+                //double angleMagnitude = Math.Acos((Math.Pow(sideA, 2) + Math.Pow(sideB, 2) - Math.Pow(sideC, 2)) / (2 * sideA * sideB));
+                double angleMagnitude = Math.Acos(normA.X * normB.X + normA.Y * normB.Y + normA.Z * normB.Z);
+
+                //cari komponen z dari vektor A, kalo hasilnya + berarti panah masuk , hasil - panah keluar
+                double angleDirection = Math.Sign(((vectorA.X) * (vectorB.Y)) - ((vectorA.Y) * (vectorB.X)));
+
+
+                //standardize the joint angle
+                if (fullRotation && angleDirection < 0) //only clip angle if full rotate
+                {
+                    angleMagnitude = (2 * Math.PI) + angleDirection * angleMagnitude;
+                }
+                return (angleMagnitude / Math.PI) * 180.0;
+            }
+            catch (Exception exc)
+            {
+                Console.WriteLine("[Error] Fail counting angle" + exc.Message.ToString());
+                return 1;
+            }
+        }
+
+    }
+
+
+
+    internal class Point3D
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Z { get; set; }
+        public Point3D(double x, double y, double z)
+        {
+            X = x;
+            Y = y;
+            Z = z;
+        }
+
+        public Point3D()
+        {
+
+        }
     }
 }
