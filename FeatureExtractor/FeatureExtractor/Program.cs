@@ -14,7 +14,7 @@ namespace FeatureExtractor
 
         static void Main(string[] args)
         {
-            FileFixer();
+            //FileFixer();
 
             bool isLog = false;
             FileStream ostrm = null;
@@ -42,9 +42,17 @@ namespace FeatureExtractor
             string[] codePath = null;
             codePath = Directory.GetDirectories("Files/Training/Preproc/");
 
-            //TODO create extract files
+            //HACK create extract files , if extract file exist, delete
             string extractionPath = "Files/Training/Extract/";
-            if (!Directory.Exists(extractionPath)) Directory.CreateDirectory(extractionPath);
+            if (!Directory.Exists(extractionPath))
+            {
+                Directory.CreateDirectory(extractionPath);
+            }
+            else
+            {
+                Directory.Delete(extractionPath,true);
+                Directory.CreateDirectory(extractionPath);
+            }
 
             if (codePath != null)
             {
@@ -65,7 +73,7 @@ namespace FeatureExtractor
                         }
                         userPath = Directory.GetDirectories(cP + "/");
                         Console.WriteLine();
-                        Console.WriteLine("[Success]Found (" + userPath.Length + ") users on " + cP.ToString());
+                        Console.WriteLine("[On Progress]Extracting user data on " + cP.ToString() + ".....");
                     }
                     catch (Exception exc)
                     {
@@ -75,7 +83,7 @@ namespace FeatureExtractor
                     foreach (string uP in userPath)
                     {
                         string[] filePath = Directory.GetFiles(uP + "/");
-                        Console.WriteLine("[Success]Found (" + filePath.Length + ") data files on " + uP.ToString());
+                        Console.WriteLine("[On Progress]Extracting file " + uP.ToString() + ".....");
                         foreach (string fp in filePath)
                         {
                             //read data
@@ -96,44 +104,38 @@ namespace FeatureExtractor
                                 //TODO preprocess here
 
                                 //Extract here
-                                if (assessmentCode != "U7B")//HACK debug sementara tanpa u7b
+
+                                string[][] ExtractedData = Extract(csvRead, fp.Split('_')[fp.Split('_').Length - 1]);
+
+                                string savePath = extractionPath + assessmentCode + ".csv";
+                                StringBuilder csvBuilder = new StringBuilder();
+                                bool isHeader = File.Exists(savePath);
+                                foreach (string[] line in ExtractedData)
                                 {
-                                    string[][] ExtractedData = Extract(csvRead, fp.Split('_')[fp.Split('_').Length - 1]);
-
-                                    string savePath = extractionPath + assessmentCode + ".csv";
-                                    StringBuilder csvBuilder = new StringBuilder();
-                                    bool isHeader = File.Exists(savePath);
-                                    foreach (string[] line in ExtractedData)
+                                    if (!isHeader)
                                     {
-                                        if (!isHeader)
+                                        string lineString = string.Empty;
+                                        bool isLabel = true;
+                                        foreach (string col in line)
                                         {
-                                            string lineString = string.Empty;
-                                            bool isLabel = true;
-                                            foreach (string col in line)
-                                            {
-                                                if (!isLabel) lineString += ",";
-                                                lineString += col;
-                                                isLabel = false;
-                                            }
-                                            csvBuilder.AppendLine(lineString);
+                                            if (!isLabel) lineString += ",";
+                                            lineString += col;
+                                            isLabel = false;
                                         }
-                                        isHeader = false;
+                                        csvBuilder.AppendLine(lineString);
                                     }
-
-                                    if (File.Exists(savePath))
-                                    {
-                                        File.AppendAllText(savePath, csvBuilder.ToString());
-                                    }
-                                    else
-                                    {
-                                        File.WriteAllText(savePath, csvBuilder.ToString());
-                                    }
-
+                                    isHeader = false;
                                 }
 
-                                //TODO save the result here, check first if extract data exist
-
-
+                                if (File.Exists(savePath))
+                                {
+                                    File.AppendAllText(savePath, csvBuilder.ToString());
+                                }
+                                else
+                                {
+                                    File.WriteAllText(savePath, csvBuilder.ToString());
+                                }
+                                
                             }
                             catch (Exception exc)
                             {
@@ -167,7 +169,6 @@ namespace FeatureExtractor
             Console.WriteLine("=================================================================");
         }
 
-
         public static string[][] Extract(string[][] data, string labelScore)
         {
             List<List<string>> extractedData = new List<List<string>>();
@@ -189,6 +190,12 @@ namespace FeatureExtractor
 
                 List<string> var = DataOperation(selectedData, Operation.Var);
                 extractedData.Add(var);
+
+                if (data[0][featureIndex].Contains("Angle") || data[0][featureIndex]=="WristFlexion")
+                {
+                    List<string> jerk = DataOperation(selectedData, Operation.Jerk);
+                    extractedData.Add(jerk);
+                }
 
             }
 
@@ -243,6 +250,7 @@ namespace FeatureExtractor
         public static List<string> DataOperation(string[][] data, Operation op)
         {
             List<double> dataBuffer = new List<double>();
+            List<double> timeBuffer = new List<double>();
             List<string> dataReturn = new List<string>();
             dataReturn.Add(data[0][1].ToString() + "_" + op.ToString());
 
@@ -251,7 +259,7 @@ namespace FeatureExtractor
                 string trimming_id = "0";
                 foreach (string[] d in data)
                 {
-                    if (d != data[0])
+                    if (d != data[0]) //remove the header
                     {
                         if (d[2] != trimming_id || d == data[data.Length - 1]) //trimming id switch
                         {
@@ -276,15 +284,20 @@ namespace FeatureExtractor
                                     //dataReturn.Add(DataMin(dataBuffer).ToString());
                                     break;
                                 case Operation.Jerk:
-                                    //dataReturn.Add(DataMin(dataBuffer).ToString());
+                                    dataReturn.Add(DataJerk(timeBuffer, dataBuffer).ToString()); //TODO create jerk extraction from accel data
                                     break;
                             }
                             dataBuffer.Clear();
+                            timeBuffer.Clear();
+
+                            dataBuffer.Add(Convert.ToDouble(d[1]));
+                            timeBuffer.Add(Convert.ToDouble(d[0]));
                             trimming_id = d[2];
                         }
                         else
                         {
                             dataBuffer.Add(Convert.ToDouble(d[1]));
+                            timeBuffer.Add(Convert.ToDouble(d[0]));
                         }
                     }
                 }
@@ -337,8 +350,91 @@ namespace FeatureExtractor
             }
             return varData;
         }
+
+        public static double DataJerk(List<double> time, List<double> data)
+        {
+            //RawDataPlotter(time, data, "rawData");
+            //RawDataPlotter(time, Differentiate(time, data), "firstDiffData");
+            //RawDataPlotter(time, Differentiate(time, Differentiate(time, data)), "secondDiffData");
+
+            List<double> squaredJerk = SquareValue(Differentiate(time, Differentiate(time, Differentiate(time, data))));
+            double integralJerk = Integral(time, squaredJerk);
+            double length = FindLength(data);
+            double duration = time[time.Count() - 1] - time[0];
+            return Math.Sqrt(0.5 * integralJerk * (Math.Pow(duration, 5) / Math.Pow(length, 2)));
+        }
+
         #endregion
 
+        #region timeseries extractor
+        /// <summary>
+        /// Mencari hasil turunan data time series terhadap waktu 
+        /// dValue / dt
+        /// </summary>
+        /// <param name="time">list time in mili sec</param>
+        /// <param name="rawData">list of values</param>
+        /// <returns></returns>
+        public static List<double> Differentiate(List<double> time, List<double> rawData)
+        {
+            List<double> diffData = new List<double>();
+            for (int i = 0; i < rawData.Count(); i++)
+            {
+                if (i == 0)
+                {
+                    diffData.Add((rawData[i+1] - rawData[i]) / (time[i+1] - time[i]));
+                }
+                else
+                {
+                    diffData.Add((rawData[i] - rawData[i - 1]) / (time[i] - time[i - 1]));
+                }
+            }
+            return diffData;
+        }
+
+        /// <summary>
+        /// Integral between time interval
+        /// </summary>
+        /// <param name="time"></param>
+        /// <param name="rawData"></param>
+        /// <returns></returns>
+        public static double Integral(List<double> time, List<double> rawData)
+        {
+            double totalArea = 0.0;
+
+            //counting integral using trapezoid value
+            for (int i = 1; i < rawData.Count(); i++)
+            {
+                totalArea += (((rawData[i] + rawData[i - 1]) / 2) * (time[i] - time[i - 1]));
+            }
+            return totalArea;
+        }
+
+        public static List<double> SquareValue(List<double> baseData)
+        {
+            List<double> sqVal = new List<double>();
+            foreach (double bd in baseData)
+            {
+                sqVal.Add(Math.Pow(bd, 2));
+            }
+            return sqVal;
+        }
+
+        public static double FindLength(List<double> rawData)
+        {
+            double maxDiff = 0.0;
+            foreach (double rd in rawData)
+            {
+                if (Math.Abs(rawData[0] - rd) > maxDiff)
+                {
+                    maxDiff = Math.Abs(rawData[0] - rd);
+                }
+            }
+            return maxDiff;
+        }
+
+        #endregion
+
+        #region misc file fixer
         public static void FileFixer()
         {
             //BUG u78 wrist flexion do not show correct value on preproc
@@ -400,11 +496,11 @@ namespace FeatureExtractor
                         }
 
                         StringBuilder prepString = new StringBuilder();
-                        foreach(string[] destLine in destinationData)
+                        foreach (string[] destLine in destinationData)
                         {
                             bool isFirst = true;
                             string stringLine = string.Empty;
-                            foreach(string destEl in destLine)
+                            foreach (string destEl in destLine)
                             {
                                 if (!isFirst) stringLine += ",";
                                 stringLine += destEl;
@@ -412,7 +508,7 @@ namespace FeatureExtractor
                             }
                             prepString.AppendLine(stringLine);
                         }
-                        File.WriteAllText(prerpocFolderPath,prepString.ToString());
+                        File.WriteAllText(prerpocFolderPath, prepString.ToString());
 
                     }
                 }
@@ -456,10 +552,20 @@ namespace FeatureExtractor
                 return 1;
             }
         }
+        #endregion
 
+        public static void RawDataExporter(List<double> data, string fileName)
+        {
+            StringBuilder stringPlotter = new StringBuilder();
+            for(int i=0;i<data.Count();i++)
+            {
+                stringPlotter.AppendLine(data[i].ToString());
+            }
+            File.AppendAllText("Files/"+fileName+".csv", stringPlotter.ToString());
+        }
     }
 
-
+    
 
     internal class Point3D
     {
