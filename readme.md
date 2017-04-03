@@ -10,9 +10,13 @@ open the solution using Visual Studio. VS 2015 is recommended.
 ## Prerequisites
 
 *Installed Kinect 2.0 for windows (could be replaced by dummy input)
+
 *Composite hand glove sensor (could be replaced by dummy input)
+
 *Presentation pointer- pgUp and pgDown emulated
+
 *Kinect 2.0 SDK
+
 *Internet connection
 
 ## Deployment
