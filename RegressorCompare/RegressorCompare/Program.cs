@@ -54,13 +54,14 @@ namespace RegressorCompare
             Console.WriteLine("Try Calling Web Service . . .");
 
             string[] AssesmentCode = new string[6] { "U2A", "U3B", "U4C", "U5B", "U7B", "U8C" };
-            int iterationNum = 30;
+            int iterationNum = 35;
 
-            for (int i = 0; i < iterationNum; i++)
+
+            foreach (string code in AssesmentCode)
             {
-                foreach (string code in AssesmentCode)
+                for (int i = 0; i < iterationNum; i++)
                 {
-                    if(code=="U8C") InvokeRequestResponseService(code, i).Wait(); //hack, check random seed working or not
+                    InvokeRequestResponseService(code, i).Wait(); //hack, check random seed working or not
                 }
             }
         }

@@ -11,6 +11,7 @@ namespace FeatureExtractor
     class Program
     {
         public enum Operation { Min, Max, Avg, Var, Jerk, Speed, Accel };
+        public static double clipTolerance = 0.3;
 
         static void Main(string[] args)
         {
@@ -50,7 +51,7 @@ namespace FeatureExtractor
             }
             else
             {
-                Directory.Delete(extractionPath,true);
+                Directory.Delete(extractionPath, true);
                 Directory.CreateDirectory(extractionPath);
             }
 
@@ -89,8 +90,8 @@ namespace FeatureExtractor
                             //read data
                             try
                             {
-                                String[] fileRead = File.ReadAllLines(fp);
-                                String[][] csvRead = new string[fileRead.Length][];
+                                string[] fileRead = File.ReadAllLines(fp);
+                                string[][] csvRead = new string[fileRead.Length][];
 
                                 int readIndex = 0;
 
@@ -99,11 +100,10 @@ namespace FeatureExtractor
                                     csvRead[readIndex] = line.Split(',');
                                     readIndex++;
                                 }
-                                //TODO clipping here
+
+                                //save the file for review
 
                                 //TODO preprocess here
-
-                                //Extract here
 
                                 string[][] ExtractedData = Extract(csvRead, fp.Split('_')[fp.Split('_').Length - 1]);
 
@@ -135,7 +135,7 @@ namespace FeatureExtractor
                                 {
                                     File.WriteAllText(savePath, csvBuilder.ToString());
                                 }
-                                
+
                             }
                             catch (Exception exc)
                             {
@@ -161,6 +161,7 @@ namespace FeatureExtractor
             }
             Console.ReadLine();
         }
+        
         public static void Init()
         {
             Console.WriteLine("*AUROS FEATURE EXTRACTOR*");
@@ -177,6 +178,10 @@ namespace FeatureExtractor
             //iterate trhough feature, index 0 mulai dari sebelah kanan time_stamp
             for (int featureIndex = 1; featureIndex < data[0].Length - 1; featureIndex++)
             {
+                if (data[0][featureIndex]=="FlexWrist")
+                {
+                    featureIndex++;
+                }
                 string[][] selectedData = columnSelector(data, featureIndex);
 
                 List<string> max = DataOperation(selectedData, Operation.Max);
@@ -191,7 +196,7 @@ namespace FeatureExtractor
                 List<string> var = DataOperation(selectedData, Operation.Var);
                 extractedData.Add(var);
 
-                if (data[0][featureIndex].Contains("Angle") || data[0][featureIndex]=="WristFlexion")
+                if (data[0][featureIndex].Contains("Angle") || data[0][featureIndex] == "WristFlexion")
                 {
                     List<string> jerk = DataOperation(selectedData, Operation.Jerk);
                     extractedData.Add(jerk);
@@ -261,8 +266,14 @@ namespace FeatureExtractor
                 {
                     if (d != data[0]) //remove the header
                     {
-                        if (d[2] != trimming_id || d == data[data.Length - 1]) //trimming id switch
+                        if (d[2] != trimming_id || d == data[data.Length - 1]) //event : trimming id switch
                         {
+                            //TODO clipping data buffer here, overwrite data buffer
+
+                            List<double>[] clip = ClippedData(timeBuffer, dataBuffer);//cut timer buffer
+
+                            timeBuffer = clip[0]; dataBuffer = clip[1];
+
                             switch (op)
                             {
                                 case Operation.Max:
@@ -304,12 +315,77 @@ namespace FeatureExtractor
             }
             catch (Exception exc)
             {
-                Console.WriteLine("[Error]Fail Calculating data max >" + exc.Message.ToString());
+                Console.WriteLine("[Error]Fail processing >" + exc.Message.ToString());
             }
             return dataReturn;
         }
 
+        private static List<double>[] ClippedData(List<double> time, List<double> data)
+        {
+            //RawDataExporter(data, "rawData");
+            List<double> clippedData = new List<double>();
+            List<double> clippedTime = new List<double>();
+            int lastCLip = data.Count() - 1, firstClip = 0;
+            List<double> absSpeed = new List<double>();
+            double avgSpeed = 0.0;
+            try
+            {
+                absSpeed =
+                Abs
+                (
+                Differentiate(time, data)
+                );
+                avgSpeed = DataAvg(absSpeed);
+                for (int i = 0; i < data.Count(); i++)
+                {
+                    if (lastCLip == data.Count() - 1)
+                    {
+                        if (absSpeed[absSpeed.Count() - 1 - i] > avgSpeed) lastCLip = data.Count() - 1 - i;
+                    }
+                    if (firstClip == 0)
+                    {
+                        if (absSpeed[i] > avgSpeed) firstClip = i;
+                    }
+                    if (firstClip != 0 && lastCLip != data.Count() - 1) break;
+                }
+
+                //Tolerating clipping ratio
+                double clipRat = Convert.ToDouble(lastCLip-firstClip+1) / Convert.ToDouble(data.Count());
+                if (clipRat < clipTolerance)
+                {
+                    lastCLip = data.Count() - 1;
+                    firstClip = 0;
+                }
+
+                for (int i = firstClip; i <= lastCLip; i++)
+                {
+                    clippedData.Add(data[i]);
+                    clippedTime.Add(time[i]);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[Error]Cliping data >" + ex.Message);
+            }
+
+            //double clipRats = Convert.ToDouble(clippedData.Count()) / Convert.ToDouble(data.Count());
+            //if (clippedData.Count() < data.Count()) Console.WriteLine("[Evaluae] Clipping ratio " + (clipRats * 100.0).ToString() + "%");
+            //RawDataExporter(clippedData, "clipped");
+           
+            return new List<double>[] { clippedTime, clippedData };
+        }
+
         #region statistic extractor
+        public static List<double> Abs(List<double> data)
+        {
+            List<double> absVal = new List<double>();
+            foreach (double d in data)
+            {
+                absVal.Add(Math.Abs(d));
+            }
+            return absVal;
+        }
+
         public static double DataMax(List<double> data)
         {
             double maxData = data[0];
@@ -356,12 +432,20 @@ namespace FeatureExtractor
             //RawDataPlotter(time, data, "rawData");
             //RawDataPlotter(time, Differentiate(time, data), "firstDiffData");
             //RawDataPlotter(time, Differentiate(time, Differentiate(time, data)), "secondDiffData");
+            try
+            {
+                List<double> squaredJerk = SquareValue(Differentiate(time, Differentiate(time, Differentiate(time, data))));
+                double integralJerk = Integral(time, squaredJerk);
+                double length = FindLength(data);
+                double duration = time[time.Count() - 1] - time[0];
+                return Math.Sqrt(0.5 * integralJerk * (Math.Pow(duration, 5) / Math.Pow(length, 2)));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("[Error]Jerk fail >" + e.Message);
+            }
 
-            List<double> squaredJerk = SquareValue(Differentiate(time, Differentiate(time, Differentiate(time, data))));
-            double integralJerk = Integral(time, squaredJerk);
-            double length = FindLength(data);
-            double duration = time[time.Count() - 1] - time[0];
-            return Math.Sqrt(0.5 * integralJerk * (Math.Pow(duration, 5) / Math.Pow(length, 2)));
+            return 0.0;
         }
 
         #endregion
@@ -381,7 +465,7 @@ namespace FeatureExtractor
             {
                 if (i == 0)
                 {
-                    diffData.Add((rawData[i+1] - rawData[i]) / (time[i+1] - time[i]));
+                    diffData.Add((rawData[i + 1] - rawData[i]) / (time[i + 1] - time[i]));
                 }
                 else
                 {
@@ -437,83 +521,10 @@ namespace FeatureExtractor
         #region misc file fixer
         public static void FileFixer()
         {
-            //BUG u78 wrist flexion do not show correct value on preproc
+            //BUG u78 V2 wrist flexion do not show correct value on preproc
             //root cause : forget to chirp data array each element
             // soving, overwrite preproc data
-            Console.WriteLine("Start fixing U7B bug..");
-            string rawFolderPath = "Files/Training/Raw/U72/";
-            string[] userRawDir = Directory.GetDirectories(rawFolderPath);
-            //iterates trhough user files
-            foreach (string rd in userRawDir)
-            {
-                if (rd.Split('/')[rd.Split('/').Length - 1] != "Dummy")
-                {
-                    string[] userRawFile = Directory.GetFiles(rd + "/", "*.csv");
-                    foreach (string rf in userRawFile)
-                    {
-                        string prerpocFolderPath = "Files/Training/Preproc/U7B/" + rf.Split('/')[rf.Split('/').Length - 2] + "/" + rf.Split('/')[rf.Split('/').Length - 1];
-                        string[] line = File.ReadAllLines(rf);
-                        string[][] sourceData = new string[line.Length][];
-
-                        int lineIndex = 0;
-                        Point3D[] hand = new Point3D[line.Length - 1];
-                        Point3D[] wrist = new Point3D[line.Length - 1];
-                        Point3D[] elbow = new Point3D[line.Length - 1];
-                        double[] wristFlexion = new double[line.Length - 1];
-
-                        foreach (string l in line)
-                        {
-                            if (lineIndex != 0)
-                            {
-                                string[] lineData = l.Split(',');
-
-                                string[] wristStr = lineData[5].Split(';');
-                                wrist[lineIndex - 1] = new Point3D(Convert.ToDouble(wristStr[0]), Convert.ToDouble(wristStr[1]), Convert.ToDouble(wristStr[2]));
-
-                                string[] handStr = lineData[4].Split(';');
-                                hand[lineIndex - 1] = new Point3D(Convert.ToDouble(handStr[0]), Convert.ToDouble(handStr[1]), Convert.ToDouble(handStr[2]));
-
-                                string[] elbowStr = lineData[6].Split(';');
-                                elbow[lineIndex - 1] = new Point3D(Convert.ToDouble(elbowStr[0]), Convert.ToDouble(elbowStr[1]), Convert.ToDouble(elbowStr[2]));
-
-                                wristFlexion[lineIndex - 1] = AngleFromThreePoints(wrist[lineIndex - 1], elbow[lineIndex - 1], hand[lineIndex - 1], false);
-
-                            }
-                            lineIndex++;
-                        }
-
-                        line = File.ReadAllLines(prerpocFolderPath);
-                        string[][] destinationData = new string[line.Length][];
-                        lineIndex = 0;
-                        foreach (string l in line)
-                        {
-                            destinationData[lineIndex] = l.Split(',');
-                            if (lineIndex != 0)
-                            {
-                                destinationData[lineIndex][3] = wristFlexion[lineIndex - 1].ToString();
-                            }
-                            lineIndex++;
-                        }
-
-                        StringBuilder prepString = new StringBuilder();
-                        foreach (string[] destLine in destinationData)
-                        {
-                            bool isFirst = true;
-                            string stringLine = string.Empty;
-                            foreach (string destEl in destLine)
-                            {
-                                if (!isFirst) stringLine += ",";
-                                stringLine += destEl;
-                                isFirst = false;
-                            }
-                            prepString.AppendLine(stringLine);
-                        }
-                        File.WriteAllText(prerpocFolderPath, prepString.ToString());
-
-                    }
-                }
-            }
-            Console.WriteLine("Finish fixing U7B bug..");
+          
         }
 
         private static double TwoPointDistance(Point3D a, Point3D b)
@@ -554,18 +565,21 @@ namespace FeatureExtractor
         }
         #endregion
 
+        /// <summary>
+        /// export satu list double
+        /// </summary>
+        /// <param name="data"> list double</param>
+        /// <param name="fileName">nama file tanpa *.csv</param>
         public static void RawDataExporter(List<double> data, string fileName)
         {
             StringBuilder stringPlotter = new StringBuilder();
-            for(int i=0;i<data.Count();i++)
+            for (int i = 0; i < data.Count(); i++)
             {
                 stringPlotter.AppendLine(data[i].ToString());
             }
-            File.AppendAllText("Files/"+fileName+".csv", stringPlotter.ToString());
+            File.AppendAllText("Files/" + fileName + ".csv", stringPlotter.ToString());
         }
     }
-
-    
 
     internal class Point3D
     {
